@@ -1,0 +1,35 @@
+{
+    "name": "anonymous-telegram-chatbot",
+    "version": "1.0.0",
+    "description": "Anonymous 1-to-1 Telegram chat bot with PartyKit matchmaking",
+    "type": "module",
+    "main": "server/server.js",
+    "scripts": {
+        "start": "node server/server.js",
+        "dev": "node --watch server/server.js",
+        "party:dev": "npx partykit dev",
+        "party:deploy": "npx partykit deploy",
+        "set-webhook": "node scripts/set-webhook.js"
+    },
+    "keywords": [
+        "telegram",
+        "bot",
+        "anonymous",
+        "chat",
+        "partykit",
+        "realtime"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "dotenv": "^17.2.3",
+        "express": "^4.18.2",
+        "ws": "^8.14.2"
+    },
+    "devDependencies": {
+        "partykit": "^0.0.65"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

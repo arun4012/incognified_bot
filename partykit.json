@@ -1,0 +1,4 @@
+{
+  "name": "incognified-matchmaking",
+  "main": "./party/room.js"
+}
