@@ -135,7 +135,7 @@ export async function handleMatchmakingMessage(message) {
             // Forward message to the target chat
             if (chatId && text) {
                 // Send as anonymous message (no sender info)
-                await sendMessage(chatId, `💬 ${text}`);
+                await sendMessage(chatId, text);
             }
             break;
 
