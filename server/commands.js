@@ -3,7 +3,7 @@
  * Handles menu buttons, commands, and message routing
  */
 
-import { sendMessage, sendMessageWithKeyboard, sendTypingAction, messages } from './telegram.js';
+import { sendMessage, sendMessageWithKeyboard, sendTypingAction, messages, answerCallbackQuery, editMessageReplyMarkup } from './telegram.js';
 import matchmaking from './matchmaking.js';
 import { isRateLimited, validateMessage } from './utils.js';
 import {
@@ -13,9 +13,9 @@ import {
     genderPreferenceKeyboard,
     inChatKeyboard,
     searchingKeyboard,
-    getSettingsKeyboard,
     reportConfirmKeyboard,
-    skippedKeyboard
+    skippedKeyboard,
+    getSettingsInlineKeyboard
 } from './menus.js';
 import {
     USER_STATES,
@@ -202,32 +202,16 @@ export async function handleStop(chatId, userId) {
 }
 
 /**
- * Handle Settings button
+ * Handle Settings command - show settings with inline keyboard
  */
 export async function handleSettings(chatId, userId) {
     const settings = getUserSettings(userId);
-    const keyboard = getSettingsKeyboard(settings);
-    await sendMessageWithKeyboard(chatId, messages.settings(settings.typingIndicator), keyboard);
+    const inlineKeyboard = getSettingsInlineKeyboard(settings);
+    await sendMessageWithKeyboard(chatId, messages.settings(settings.typingIndicator), inlineKeyboard);
 }
 
 /**
- * Handle settings toggle
- */
-export async function handleSettingsToggle(chatId, userId, buttonText) {
-    if (buttonText === BUTTONS.TYPING_ON || buttonText === BUTTONS.TYPING_OFF) {
-        const newValue = toggleTypingIndicator(userId);
-        const settings = getUserSettings(userId);
-        const keyboard = getSettingsKeyboard(settings);
-        await sendMessageWithKeyboard(
-            chatId,
-            messages.settingsUpdated('Typing Indicator', newValue) + '\n\n' + messages.settings(newValue),
-            keyboard
-        );
-    }
-}
-
-/**
- * Handle Stats button
+ * Handle Stats command - show user statistics
  */
 export async function handleStats(chatId, userId) {
     const stats = getUserStats(userId);
@@ -236,14 +220,42 @@ export async function handleStats(chatId, userId) {
         messages: stats.messages,
         totalDuration: formatDuration(stats.totalDuration)
     };
-    await sendMessageWithKeyboard(chatId, messages.stats(formattedStats), mainMenuKeyboard);
+    await sendMessage(chatId, messages.stats(formattedStats));
 }
 
 /**
- * Handle Help button
+ * Handle Help command - show help text
  */
 export async function handleHelp(chatId, userId) {
-    await sendMessageWithKeyboard(chatId, messages.help, mainMenuKeyboard);
+    await sendMessage(chatId, messages.help);
+}
+
+/**
+ * Handle callback query (inline button clicks)
+ */
+export async function handleCallbackQuery(callbackQuery) {
+    const { id: queryId, from, message, data } = callbackQuery;
+    const userId = from.id;
+    const chatId = message.chat.id;
+    const messageId = message.message_id;
+
+    // Answer the callback query immediately (prevents loading indicator)
+    await answerCallbackQuery(queryId);
+
+    switch (data) {
+        case 'toggle_typing':
+            // Toggle typing indicator setting
+            const newValue = toggleTypingIndicator(userId);
+            const settings = getUserSettings(userId);
+            const newKeyboard = getSettingsInlineKeyboard(settings);
+
+            // Update the message with new keyboard
+            await editMessageReplyMarkup(chatId, messageId, newKeyboard);
+            break;
+
+        default:
+            console.log('Unknown callback data:', data);
+    }
 }
 
 /**
@@ -316,15 +328,6 @@ export async function handleTextMessage(message, userId, chatId) {
     if (text === BUTTONS.SEARCH_GENDER) {
         return handleGenderSelect(chatId, userId);
     }
-    if (text === BUTTONS.SETTINGS) {
-        return handleSettings(chatId, userId);
-    }
-    if (text === BUTTONS.STATS) {
-        return handleStats(chatId, userId);
-    }
-    if (text === BUTTONS.HELP) {
-        return handleHelp(chatId, userId);
-    }
     if (text === BUTTONS.BACK) {
         return handleBack(chatId, userId);
     }
@@ -336,9 +339,6 @@ export async function handleTextMessage(message, userId, chatId) {
     }
     if (text === BUTTONS.REPORT) {
         return handleReport(chatId, userId);
-    }
-    if (text === BUTTONS.TYPING_ON || text === BUTTONS.TYPING_OFF) {
-        return handleSettingsToggle(chatId, userId, text);
     }
     if (text === BUTTONS.CONFIRM_REPORT) {
         return handleReportConfirm(chatId, userId);
@@ -497,5 +497,6 @@ export default {
     handleBack,
     handleTextMessage,
     handleTypingFromUser,
-    handleMatchmakingMessage
+    handleMatchmakingMessage,
+    handleCallbackQuery
 };

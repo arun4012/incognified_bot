@@ -122,7 +122,7 @@ export async function setWebhook(webhookUrl) {
             },
             body: JSON.stringify({
                 url: webhookUrl,
-                allowed_updates: ['message'], // Only receive message updates
+                allowed_updates: ['message', 'callback_query'], // Receive messages and inline button clicks
                 drop_pending_updates: true // Ignore old messages on restart
             })
         });
@@ -193,6 +193,60 @@ export async function getMe() {
     } catch (error) {
         console.error('Failed to get bot info:', error.message);
         return null;
+    }
+}
+
+/**
+ * Answer a callback query (required when user clicks inline button)
+ * @param {string} callbackQueryId - ID from the callback query
+ * @param {string} text - Optional popup text to show
+ */
+export async function answerCallbackQuery(callbackQueryId, text = '') {
+    try {
+        const response = await fetch(`${TELEGRAM_API_BASE}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                callback_query_id: callbackQueryId,
+                text: text
+            })
+        });
+
+        const data = await response.json();
+        return { success: data.ok };
+    } catch (error) {
+        console.error('Failed to answer callback query:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Edit the inline keyboard of an existing message
+ * @param {string} chatId - Chat ID
+ * @param {number} messageId - Message ID to edit
+ * @param {object} replyMarkup - New inline keyboard
+ */
+export async function editMessageReplyMarkup(chatId, messageId, replyMarkup) {
+    try {
+        const response = await fetch(`${TELEGRAM_API_BASE}/editMessageReplyMarkup`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                chat_id: chatId,
+                message_id: messageId,
+                reply_markup: replyMarkup
+            })
+        });
+
+        const data = await response.json();
+        return { success: data.ok, data: data.result };
+    } catch (error) {
+        console.error('Failed to edit message reply markup:', error.message);
+        return { success: false, error: error.message };
     }
 }
 
@@ -309,5 +363,7 @@ export default {
     deleteWebhook,
     getWebhookInfo,
     getMe,
+    answerCallbackQuery,
+    editMessageReplyMarkup,
     messages
 };

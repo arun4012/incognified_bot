@@ -13,7 +13,11 @@ import {
     handleNext,
     handleStop,
     handleTextMessage,
-    handleTypingFromUser
+    handleTypingFromUser,
+    handleSettings,
+    handleStats,
+    handleHelp,
+    handleCallbackQuery
 } from './commands.js';
 import matchmaking from './matchmaking.js';
 import { setWebhook, getMe } from './telegram.js';
@@ -93,6 +97,10 @@ app.post('/webhook', async (req, res) => {
         const message = update.message;
 
         if (!message) {
+            // Check for callback_query (inline button clicks)
+            if (update.callback_query) {
+                await handleCallbackQuery(update.callback_query);
+            }
             return;
         }
 
@@ -112,6 +120,15 @@ app.post('/webhook', async (req, res) => {
                     break;
                 case '/stop':
                     await handleStop(chatId, userId);
+                    break;
+                case '/settings':
+                    await handleSettings(chatId, userId);
+                    break;
+                case '/stats':
+                    await handleStats(chatId, userId);
+                    break;
+                case '/help':
+                    await handleHelp(chatId, userId);
                     break;
                 default:
                     // Unknown command - treat as text message (might be menu button)

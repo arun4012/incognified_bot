@@ -8,9 +8,6 @@ export const BUTTONS = {
     // Main menu
     FIND_PARTNER: '🚀 Find Partner',
     SEARCH_GENDER: '👩👨 Search by Gender',
-    SETTINGS: '⚙️ Settings',
-    STATS: '📊 My Stats',
-    HELP: '❓ Help',
 
     // Gender selection
     GENDER_MALE: '👨 Male',
@@ -37,13 +34,12 @@ export const BUTTONS = {
 
 /**
  * Main menu keyboard - shown on /start and after leaving chat
+ * Simplified: only Find Partner and Search by Gender
  */
 export const mainMenuKeyboard = {
     keyboard: [
         [{ text: BUTTONS.FIND_PARTNER }],
-        [{ text: BUTTONS.SEARCH_GENDER }],
-        [{ text: BUTTONS.SETTINGS }, { text: BUTTONS.STATS }],
-        [{ text: BUTTONS.HELP }]
+        [{ text: BUTTONS.SEARCH_GENDER }]
     ],
     resize_keyboard: true,
     one_time_keyboard: false
@@ -123,20 +119,20 @@ export const skippedKeyboard = {
 };
 
 /**
- * Generate settings keyboard based on user's current settings
+ * Generate INLINE settings keyboard (appears in message)
  * @param {object} settings - User's current settings
- * @returns {object} Reply keyboard object
+ * @returns {object} Inline keyboard object
  */
-export function getSettingsKeyboard(settings = {}) {
-    const typingEnabled = settings.typingIndicator !== false; // Default true
+export function getSettingsInlineKeyboard(settings = {}) {
+    const typingEnabled = settings.typingIndicator !== false;
 
     return {
-        keyboard: [
-            [{ text: typingEnabled ? BUTTONS.TYPING_ON : BUTTONS.TYPING_OFF }],
-            [{ text: BUTTONS.BACK }]
-        ],
-        resize_keyboard: true,
-        one_time_keyboard: false
+        inline_keyboard: [
+            [{
+                text: typingEnabled ? '✅ Typing Indicator: ON' : '❌ Typing Indicator: OFF',
+                callback_data: 'toggle_typing'
+            }]
+        ]
     };
 }
 
