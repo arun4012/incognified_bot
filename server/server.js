@@ -86,7 +86,14 @@ app.post('/webhook', async (req, res) => {
         // Immediately respond to Telegram (prevents timeout)
         res.sendStatus(200);
 
-        // Extract user info
+        // Handle callback_query (inline button clicks) FIRST
+        // This is separate from message handling
+        if (update.callback_query) {
+            await handleCallbackQuery(update.callback_query);
+            return;
+        }
+
+        // Extract user info from message
         const userInfo = extractUserInfo(update);
         if (!userInfo) {
             console.log('No user info in update');
@@ -97,10 +104,6 @@ app.post('/webhook', async (req, res) => {
         const message = update.message;
 
         if (!message) {
-            // Check for callback_query (inline button clicks)
-            if (update.callback_query) {
-                await handleCallbackQuery(update.callback_query);
-            }
             return;
         }
 
