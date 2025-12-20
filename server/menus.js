@@ -29,7 +29,10 @@ export const BUTTONS = {
 
     // Report confirmation
     CONFIRM_REPORT: '✅ Yes, Report',
-    CANCEL_REPORT: '❌ Cancel'
+    CANCEL_REPORT: '❌ Cancel',
+
+    // Undo skip
+    UNDO_SKIP: '🔄 Undo Skip'
 };
 
 /**
@@ -107,6 +110,19 @@ export const reportConfirmKeyboard = {
 };
 
 /**
+ * Skipped keyboard - shown after skipping a partner (with undo option)
+ */
+export const skippedKeyboard = {
+    keyboard: [
+        [{ text: BUTTONS.UNDO_SKIP }],
+        [{ text: BUTTONS.FIND_PARTNER }],
+        [{ text: BUTTONS.BACK }]
+    ],
+    resize_keyboard: true,
+    one_time_keyboard: false
+};
+
+/**
  * Generate settings keyboard based on user's current settings
  * @param {object} settings - User's current settings
  * @returns {object} Reply keyboard object
@@ -158,6 +174,7 @@ export default {
     inChatKeyboard,
     searchingKeyboard,
     reportConfirmKeyboard,
+    skippedKeyboard,
     getSettingsKeyboard,
     removeKeyboard,
     isButton,

@@ -27,6 +27,10 @@ const LONG_BAN_THRESHOLD = 5;      // Reports needed for 24 hour ban
 const TEMP_BAN_DURATION = 30 * 60 * 1000;       // 30 minutes
 const LONG_BAN_DURATION = 24 * 60 * 60 * 1000;  // 24 hours
 
+// Skipped partner tracking for undo feature
+const skippedPartners = new Map(); // userId -> { partnerId, partnerChatId, timestamp }
+const UNDO_TIMEOUT = 10 * 1000; // 10 seconds
+
 // ============ State Management ============
 
 /**
@@ -234,6 +238,44 @@ export function clearSessionReports(userId1, userId2) {
     reportsInSession.delete(`${userId2}_${userId1}`);
 }
 
+// ============ Skipped Partner (Undo) Management ============
+
+/**
+ * Save skipped partner for undo feature
+ */
+export function setSkippedPartner(userId, partnerId, partnerChatId) {
+    skippedPartners.set(userId, {
+        partnerId,
+        partnerChatId,
+        timestamp: Date.now()
+    });
+}
+
+/**
+ * Get skipped partner if still valid (within 10 seconds)
+ * @returns {object|null} Partner info or null if expired/not found
+ */
+export function getSkippedPartner(userId) {
+    const data = skippedPartners.get(userId);
+    if (!data) return null;
+
+    // Check if expired
+    if (Date.now() - data.timestamp > UNDO_TIMEOUT) {
+        skippedPartners.delete(userId);
+        return null;
+    }
+
+    return data;
+}
+
+/**
+ * Clear skipped partner data
+ */
+export function clearSkippedPartner(userId) {
+    skippedPartners.delete(userId);
+}
+
+
 // ============ Cleanup ============
 
 /**
@@ -282,5 +324,8 @@ export default {
     getBanRemainingTime,
     reportUser,
     clearSessionReports,
+    setSkippedPartner,
+    getSkippedPartner,
+    clearSkippedPartner,
     cleanup
 };

@@ -335,6 +335,56 @@ export function isInQueue(userId) {
 }
 
 /**
+ * Reconnect two users who were previously paired
+ * @returns {boolean} true if reconnected successfully
+ */
+export function reconnectPair(userId, partnerId, chatId, partnerChatId) {
+    // Check if partner is available (not in chat, not in queue)
+    if (activePairs.has(partnerId)) {
+        return { success: false, reason: 'partner_busy' };
+    }
+
+    // Remove both from queue if present
+    const userQueueIndex = waitingQueue.findIndex(u => u.userId === userId);
+    if (userQueueIndex !== -1) {
+        waitingQueue.splice(userQueueIndex, 1);
+    }
+
+    const partnerQueueIndex = waitingQueue.findIndex(u => u.userId === partnerId);
+    if (partnerQueueIndex !== -1) {
+        waitingQueue.splice(partnerQueueIndex, 1);
+    }
+
+    // Store chatIds
+    userChatIds.set(userId, chatId);
+    userChatIds.set(partnerId, partnerChatId);
+
+    // Create the pair
+    activePairs.set(userId, {
+        partnerId: partnerId,
+        partnerChatId: partnerChatId
+    });
+    activePairs.set(partnerId, {
+        partnerId: userId,
+        partnerChatId: chatId
+    });
+
+    // Update states
+    setUserState(userId, USER_STATES.IN_CHAT);
+    setUserState(partnerId, USER_STATES.IN_CHAT);
+
+    // Mark chat start for stats
+    markChatStart(userId);
+    markChatStart(partnerId);
+    incrementChatCount(userId);
+    incrementChatCount(partnerId);
+
+    console.log(`Reconnected: ${userId} <-> ${partnerId}`);
+
+    return { success: true };
+}
+
+/**
  * Get current status
  */
 export function getStatus() {
@@ -355,6 +405,7 @@ export default {
     getPartner,
     isInChat,
     isInQueue,
+    reconnectPair,
     getStatus
 };
 
