@@ -1,13 +1,20 @@
 /**
  * Express Webhook Server for Telegram Bot
  * Main entry point - handles incoming webhook requests
- * Uses in-memory matchmaking for local development
+ * Uses in-memory matchmaking with menu-based UI
  */
 
 import 'dotenv/config';
 import express from 'express';
 import { extractUserInfo, isCommand, parseCommand } from './utils.js';
-import { handleStart, handleFind, handleNext, handleStop, handleTextMessage } from './commands.js';
+import {
+    handleStart,
+    handleFind,
+    handleNext,
+    handleStop,
+    handleTextMessage,
+    handleTypingFromUser
+} from './commands.js';
 import matchmaking from './matchmaking.js';
 import { setWebhook, getMe } from './telegram.js';
 
@@ -55,6 +62,8 @@ app.get('/', (req, res) => {
     res.json({
         name: 'Incognified Bot',
         description: 'Anonymous Telegram Chat Bot',
+        version: '2.0.0',
+        features: ['Menu UI', 'Gender Matching', 'Typing Indicators', 'Stats', 'Reports'],
         endpoints: {
             health: '/health',
             webhook: '/webhook (POST)'
@@ -105,11 +114,14 @@ app.post('/webhook', async (req, res) => {
                     await handleStop(chatId, userId);
                     break;
                 default:
-                    // Unknown command - ignore or send help
+                    // Unknown command - treat as text message (might be menu button)
+                    await handleTextMessage(message, userId, chatId);
                     break;
             }
-        } else {
-            // Regular text message - forward to partner
+        } else if (message.text) {
+            // Regular text message or menu button - unified handler
+            // Also trigger typing indicator for partner
+            handleTypingFromUser(userId);
             await handleTextMessage(message, userId, chatId);
         }
 

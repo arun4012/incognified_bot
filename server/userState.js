@@ -1,0 +1,285 @@
+/**
+ * User state management
+ * Handles user settings, stats, reports, and state tracking
+ * All data is in-memory (no persistence)
+ */
+
+// User states
+export const USER_STATES = {
+    IDLE: 'idle',
+    SELECTING_GENDER: 'selecting_gender',
+    SELECTING_PREFERENCE: 'selecting_preference',
+    SEARCHING: 'searching',
+    IN_CHAT: 'in_chat'
+};
+
+// In-memory storage
+const userStates = new Map();      // userId -> { state, gender, preference, chatStartTime }
+const userSettings = new Map();    // userId -> { typingIndicator: true/false }
+const userStats = new Map();       // userId -> { chats, messages, totalDuration }
+const reportedUsers = new Map();   // oderId -> { count, lastReportTime, banUntil }
+const reportsInSession = new Set(); // Set of `${reporterId}_${reportedId}` to prevent duplicate reports
+
+// Ban configuration
+const TEMP_BAN_THRESHOLD = 3;      // Reports needed for 30 min ban
+const LONG_BAN_THRESHOLD = 5;      // Reports needed for 24 hour ban
+const TEMP_BAN_DURATION = 30 * 60 * 1000;       // 30 minutes
+const LONG_BAN_DURATION = 24 * 60 * 60 * 1000;  // 24 hours
+
+// ============ State Management ============
+
+/**
+ * Get user's current state
+ */
+export function getUserState(userId) {
+    return userStates.get(userId) || { state: USER_STATES.IDLE };
+}
+
+/**
+ * Set user's state
+ */
+export function setUserState(userId, state, extra = {}) {
+    const current = userStates.get(userId) || {};
+    userStates.set(userId, { ...current, state, ...extra });
+}
+
+/**
+ * Clear user's state (reset to idle)
+ */
+export function clearUserState(userId) {
+    userStates.delete(userId);
+}
+
+/**
+ * Set user's gender and preference
+ */
+export function setUserGender(userId, gender, preference) {
+    const current = userStates.get(userId) || { state: USER_STATES.IDLE };
+    userStates.set(userId, { ...current, gender, preference });
+}
+
+/**
+ * Get user's gender info
+ */
+export function getUserGender(userId) {
+    const state = userStates.get(userId);
+    return state ? { gender: state.gender, preference: state.preference } : null;
+}
+
+// ============ Settings Management ============
+
+/**
+ * Get user settings
+ */
+export function getUserSettings(userId) {
+    return userSettings.get(userId) || { typingIndicator: true };
+}
+
+/**
+ * Update user settings
+ */
+export function updateUserSettings(userId, updates) {
+    const current = getUserSettings(userId);
+    userSettings.set(userId, { ...current, ...updates });
+}
+
+/**
+ * Toggle typing indicator setting
+ */
+export function toggleTypingIndicator(userId) {
+    const current = getUserSettings(userId);
+    const newValue = !current.typingIndicator;
+    updateUserSettings(userId, { typingIndicator: newValue });
+    return newValue;
+}
+
+// ============ Stats Management ============
+
+/**
+ * Get user stats
+ */
+export function getUserStats(userId) {
+    return userStats.get(userId) || { chats: 0, messages: 0, totalDuration: 0 };
+}
+
+/**
+ * Increment chat count
+ */
+export function incrementChatCount(userId) {
+    const current = getUserStats(userId);
+    userStats.set(userId, { ...current, chats: current.chats + 1 });
+}
+
+/**
+ * Increment message count
+ */
+export function incrementMessageCount(userId) {
+    const current = getUserStats(userId);
+    userStats.set(userId, { ...current, messages: current.messages + 1 });
+}
+
+/**
+ * Add chat duration (in seconds)
+ */
+export function addChatDuration(userId, durationMs) {
+    const current = getUserStats(userId);
+    userStats.set(userId, { ...current, totalDuration: current.totalDuration + durationMs });
+}
+
+/**
+ * Mark chat start time
+ */
+export function markChatStart(userId) {
+    const current = userStates.get(userId) || { state: USER_STATES.IDLE };
+    userStates.set(userId, { ...current, chatStartTime: Date.now() });
+}
+
+/**
+ * End chat and record duration
+ */
+export function endChatAndRecordDuration(userId) {
+    const state = userStates.get(userId);
+    if (state && state.chatStartTime) {
+        const duration = Date.now() - state.chatStartTime;
+        addChatDuration(userId, duration);
+        // Clear chat start time
+        const { chatStartTime, ...rest } = state;
+        userStates.set(userId, rest);
+    }
+}
+
+/**
+ * Format duration for display
+ */
+export function formatDuration(ms) {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) {
+        return `${hours}h ${minutes % 60}m`;
+    } else if (minutes > 0) {
+        return `${minutes}m ${seconds % 60}s`;
+    } else {
+        return `${seconds}s`;
+    }
+}
+
+// ============ Report Management ============
+
+/**
+ * Check if user is banned
+ */
+export function isUserBanned(userId) {
+    const report = reportedUsers.get(userId);
+    if (!report || !report.banUntil) {
+        return false;
+    }
+    if (Date.now() > report.banUntil) {
+        // Ban expired, clear it
+        report.banUntil = null;
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Get ban remaining time in minutes
+ */
+export function getBanRemainingTime(userId) {
+    const report = reportedUsers.get(userId);
+    if (!report || !report.banUntil) return 0;
+    const remaining = report.banUntil - Date.now();
+    return Math.ceil(remaining / 60000); // Return minutes
+}
+
+/**
+ * Report a user
+ * @returns {{ success: boolean, message: string, alreadyReported?: boolean }}
+ */
+export function reportUser(reporterId, reportedId) {
+    const sessionKey = `${reporterId}_${reportedId}`;
+
+    // Check if already reported in this session
+    if (reportsInSession.has(sessionKey)) {
+        return { success: false, alreadyReported: true, message: 'You have already reported this user.' };
+    }
+
+    // Mark as reported in this session
+    reportsInSession.add(sessionKey);
+
+    // Increment report count
+    const current = reportedUsers.get(reportedId) || { count: 0 };
+    current.count++;
+    current.lastReportTime = Date.now();
+
+    // Check for ban thresholds
+    if (current.count >= LONG_BAN_THRESHOLD) {
+        current.banUntil = Date.now() + LONG_BAN_DURATION;
+    } else if (current.count >= TEMP_BAN_THRESHOLD) {
+        current.banUntil = Date.now() + TEMP_BAN_DURATION;
+    }
+
+    reportedUsers.set(reportedId, current);
+
+    return { success: true, message: 'Report submitted. Thank you for keeping the community safe.' };
+}
+
+/**
+ * Clear session reports (call when chat ends)
+ */
+export function clearSessionReports(userId1, userId2) {
+    reportsInSession.delete(`${userId1}_${userId2}`);
+    reportsInSession.delete(`${userId2}_${userId1}`);
+}
+
+// ============ Cleanup ============
+
+/**
+ * Cleanup old data periodically
+ */
+export function cleanup() {
+    const now = Date.now();
+    const ONE_DAY = 24 * 60 * 60 * 1000;
+
+    // Clean up expired bans
+    for (const [userId, report] of reportedUsers.entries()) {
+        if (report.banUntil && now > report.banUntil) {
+            report.banUntil = null;
+        }
+        // Remove very old reports (older than 7 days)
+        if (report.lastReportTime && now - report.lastReportTime > 7 * ONE_DAY) {
+            reportedUsers.delete(userId);
+        }
+    }
+
+    // Clean old session reports
+    // (In a real app, you'd clear these when chats end)
+}
+
+// Run cleanup every hour
+setInterval(cleanup, 60 * 60 * 1000);
+
+export default {
+    USER_STATES,
+    getUserState,
+    setUserState,
+    clearUserState,
+    setUserGender,
+    getUserGender,
+    getUserSettings,
+    updateUserSettings,
+    toggleTypingIndicator,
+    getUserStats,
+    incrementChatCount,
+    incrementMessageCount,
+    addChatDuration,
+    markChatStart,
+    endChatAndRecordDuration,
+    formatDuration,
+    isUserBanned,
+    getBanRemainingTime,
+    reportUser,
+    clearSessionReports,
+    cleanup
+};

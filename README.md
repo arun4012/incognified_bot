@@ -1,28 +1,35 @@
 # 🎭 Incognified Bot
 
-An anonymous 1-to-1 Telegram chat bot with realtime matchmaking powered by PartyKit.
+An anonymous 1-to-1 Telegram chat bot with menu-based UI and gender matching.
 
 ## Features
 
 - 🔒 **Completely Anonymous** - No identity storage, no message persistence
-- ⚡ **Realtime Matching** - Instant pairing via WebSocket
-- 🆓 **Free Tier Compatible** - Runs on Railway/Render + PartyKit free tiers
+- 📱 **Menu-Based UI** - Interactive button menus for easy navigation
+- 👩👨 **Gender Matching** - Filter partners by gender preference
+- ⌨️ **Typing Indicators** - See when your partner is typing
+- 📊 **Stats Tracking** - View your anonymous chat statistics
+- ⚙️ **User Settings** - Toggle typing indicators on/off
+- ⚠️ **Report System** - Report abusive users (temp ban for repeat offenders)
 - 🛡️ **Abuse Prevention** - Rate limiting, text-only messages
 
-## Architecture
+## Menu Options
 
-```
-Telegram User → Webhook → Express Server ↔ PartyKit Room ↔ Express Server → Telegram User
-```
+| Menu Button | Description |
+|-------------|-------------|
+| 🚀 Find Partner | Match with a random stranger |
+| 👩👨 Search by Gender | Select gender and preference, then match |
+| ⚙️ Settings | Toggle typing indicators |
+| 📊 My Stats | View your chat statistics |
+| ❓ Help | Show usage instructions |
 
-## Commands
+### In-Chat Menu
+| Button | Description |
+|--------|-------------|
+| ⏭️ Next Partner | Skip to a new partner |
+| 🛑 Stop Chat | Leave the conversation |
+| ⚠️ Report | Report inappropriate behavior |
 
-| Command | Description |
-|---------|-------------|
-| `/start` | Welcome message with instructions |
-| `/find` | Find a random anonymous partner |
-| `/next` | Skip current partner, find new one |
-| `/stop` | Leave the current chat |
 
 ## Quick Start
 

@@ -1,24 +1,36 @@
 /**
  * In-memory matchmaking manager
- * Used for local development when PartyKit isn't available
- * Same logic as party/room.js but runs in-process
+ * Supports gender-based matching and typing indicators
  */
 
-// Queue of users waiting for a match: { oderId, chatId }
+import {
+    setUserState,
+    getUserState,
+    clearUserState,
+    setUserGender,
+    getUserGender,
+    USER_STATES,
+    incrementChatCount,
+    incrementMessageCount,
+    markChatStart,
+    endChatAndRecordDuration,
+    clearSessionReports
+} from './userState.js';
+
+// Queue of users waiting for a match: { userId, chatId, gender, preference }
 const waitingQueue = [];
 
-// Map of active pairs: userId -> { partnerId, partnerChatId }
+// Map of active pairs: userId -> { oderId, partnerChatId }
 const activePairs = new Map();
 
 // Map of user chatIds: userId -> chatId
 const userChatIds = new Map();
 
-// Callback to send responses (set by server.js)
+// Callback to send responses (set by commands.js)
 let responseCallback = null;
 
 /**
  * Set the callback function for sending responses
- * @param {function} callback - Function to call with response messages
  */
 export function setResponseCallback(callback) {
     responseCallback = callback;
@@ -34,11 +46,31 @@ function sendResponse(message) {
 }
 
 /**
+ * Check if two users can match based on gender preferences
+ */
+function canMatch(user1, user2) {
+    // If either has no gender preference, they can match with anyone
+    if (!user1.gender || !user2.gender) return true;
+    if (!user1.preference || user1.preference === 'any') {
+        if (!user2.preference || user2.preference === 'any') return true;
+        return user2.preference === user1.gender;
+    }
+    if (!user2.preference || user2.preference === 'any') {
+        return user1.preference === user2.gender;
+    }
+    // Both have preferences - check if they match each other
+    return user1.preference === user2.gender && user2.preference === user1.gender;
+}
+
+/**
  * Handle user joining the matchmaking queue
  * @param {string} userId - Telegram user ID
  * @param {string} chatId - Telegram chat ID
+ * @param {object} options - { gender, preference } optional gender matching options
  */
-export function handleJoin(userId, chatId) {
+export function handleJoin(userId, chatId, options = {}) {
+    const { gender, preference } = options;
+
     // Store chatId for this user
     userChatIds.set(userId, chatId);
 
@@ -63,10 +95,18 @@ export function handleJoin(userId, chatId) {
         return;
     }
 
+    // Update user state
+    setUserState(userId, USER_STATES.SEARCHING, { gender, preference });
+
+    // User data object
+    const userData = { userId, chatId, gender, preference };
+
     // Try to match with someone in queue
     if (waitingQueue.length > 0) {
-        // Find first user that isn't the same person (prevent self-pairing)
-        const matchIndex = waitingQueue.findIndex(u => u.userId !== userId);
+        // Find first compatible user
+        const matchIndex = waitingQueue.findIndex(u =>
+            u.userId !== userId && canMatch(userData, u)
+        );
 
         if (matchIndex !== -1) {
             const partner = waitingQueue.splice(matchIndex, 1)[0];
@@ -80,6 +120,16 @@ export function handleJoin(userId, chatId) {
                 partnerId: userId,
                 partnerChatId: chatId
             });
+
+            // Update states to IN_CHAT
+            setUserState(userId, USER_STATES.IN_CHAT);
+            setUserState(partner.userId, USER_STATES.IN_CHAT);
+
+            // Mark chat start for stats
+            markChatStart(userId);
+            markChatStart(partner.userId);
+            incrementChatCount(userId);
+            incrementChatCount(partner.userId);
 
             // Notify both users
             sendResponse({
@@ -96,12 +146,14 @@ export function handleJoin(userId, chatId) {
     }
 
     // No match found, add to queue
-    waitingQueue.push({ userId, chatId });
+    waitingQueue.push(userData);
 
     sendResponse({
         type: 'waiting',
         userId,
-        chatId
+        chatId,
+        gender,
+        preference
     });
 
     console.log(`User ${userId} added to queue. Queue size: ${waitingQueue.length}`);
@@ -109,7 +161,6 @@ export function handleJoin(userId, chatId) {
 
 /**
  * Handle user leaving the chat or queue
- * @param {string} userId - Telegram user ID
  */
 export function handleLeave(userId) {
     // Remove from queue if present
@@ -124,9 +175,19 @@ export function handleLeave(userId) {
     if (pair) {
         const { partnerId, partnerChatId } = pair;
 
+        // Record chat duration for stats
+        endChatAndRecordDuration(userId);
+        endChatAndRecordDuration(partnerId);
+
+        // Clear session reports between these users
+        clearSessionReports(userId, partnerId);
+
         // Remove both from pairs
         activePairs.delete(userId);
         activePairs.delete(partnerId);
+
+        // Update partner state
+        setUserState(partnerId, USER_STATES.IDLE);
 
         // Notify partner
         sendResponse({
@@ -138,24 +199,36 @@ export function handleLeave(userId) {
         console.log(`Pair broken: ${userId} left, notified ${partnerId}`);
     }
 
-    // Remove chatId
+    // Clear user state
+    clearUserState(userId);
     userChatIds.delete(userId);
 }
 
 /**
  * Handle user skipping to next partner
- * @param {string} userId - Telegram user ID
- * @param {string} chatId - Telegram chat ID
  */
 export function handleNext(userId, chatId) {
+    // Get current gender preferences to reuse
+    const genderInfo = getUserGender(userId);
+
     // First, leave current chat
     const pair = activePairs.get(userId);
     if (pair) {
         const { partnerId, partnerChatId } = pair;
 
+        // Record chat duration
+        endChatAndRecordDuration(userId);
+        endChatAndRecordDuration(partnerId);
+
+        // Clear session reports
+        clearSessionReports(userId, partnerId);
+
         // Remove both from pairs
         activePairs.delete(userId);
         activePairs.delete(partnerId);
+
+        // Update partner state
+        setUserState(partnerId, USER_STATES.IDLE);
 
         // Notify partner they were skipped
         sendResponse({
@@ -180,14 +253,12 @@ export function handleNext(userId, chatId) {
         chatId
     });
 
-    // Now rejoin the queue
-    handleJoin(userId, chatId);
+    // Now rejoin the queue with same preferences
+    handleJoin(userId, chatId, genderInfo || {});
 }
 
 /**
  * Handle forwarding message to partner
- * @param {string} userId - Sender's user ID
- * @param {string} text - Message text
  */
 export function handleMessage(userId, text) {
     const chatId = userChatIds.get(userId);
@@ -208,6 +279,9 @@ export function handleMessage(userId, text) {
 
     const { partnerId, partnerChatId } = pair;
 
+    // Increment message stats
+    incrementMessageCount(userId);
+
     // Forward message to partner
     sendResponse({
         type: 'forward_message',
@@ -218,6 +292,46 @@ export function handleMessage(userId, text) {
     });
 
     console.log(`Message from ${userId} forwarded to ${partnerId}`);
+}
+
+/**
+ * Handle typing indicator
+ * @param {string} userId - User who is typing
+ */
+export function handleTyping(userId) {
+    const pair = activePairs.get(userId);
+    if (!pair) return;
+
+    const { partnerId, partnerChatId } = pair;
+
+    // Send typing indicator to partner
+    sendResponse({
+        type: 'typing',
+        userId: partnerId,
+        chatId: partnerChatId,
+        fromUserId: userId
+    });
+}
+
+/**
+ * Get partner info for a user
+ */
+export function getPartner(userId) {
+    return activePairs.get(userId) || null;
+}
+
+/**
+ * Check if user is in a chat
+ */
+export function isInChat(userId) {
+    return activePairs.has(userId);
+}
+
+/**
+ * Check if user is in queue
+ */
+export function isInQueue(userId) {
+    return waitingQueue.some(u => u.userId === userId);
 }
 
 /**
@@ -237,5 +351,10 @@ export default {
     handleLeave,
     handleNext,
     handleMessage,
+    handleTyping,
+    getPartner,
+    isInChat,
+    isInQueue,
     getStatus
 };
+
