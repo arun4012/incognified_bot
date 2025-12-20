@@ -171,7 +171,7 @@ export default {
     searchingKeyboard,
     reportConfirmKeyboard,
     skippedKeyboard,
-    getSettingsKeyboard,
+    getSettingsInlineKeyboard,
     removeKeyboard,
     isButton,
     isAnyButton
