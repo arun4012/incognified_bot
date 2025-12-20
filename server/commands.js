@@ -13,7 +13,8 @@ import {
     genderPreferenceKeyboard,
     inChatKeyboard,
     searchingKeyboard,
-    getSettingsKeyboard
+    getSettingsKeyboard,
+    reportConfirmKeyboard
 } from './menus.js';
 import {
     USER_STATES,
@@ -190,7 +191,7 @@ export async function handleHelp(chatId, userId) {
 }
 
 /**
- * Handle Report button
+ * Handle Report button - show confirmation dialog
  */
 export async function handleReport(chatId, userId) {
     const partner = matchmaking.getPartner(userId);
@@ -199,12 +200,42 @@ export async function handleReport(chatId, userId) {
         return;
     }
 
+    // Set state to confirming report
+    setUserState(userId, USER_STATES.CONFIRMING_REPORT);
+    await sendMessageWithKeyboard(
+        chatId,
+        '⚠️ Are you sure you want to report this user?\n\nReporting will be recorded and may result in a ban for the reported user if multiple reports are received.',
+        reportConfirmKeyboard
+    );
+}
+
+/**
+ * Handle Report confirmation
+ */
+export async function handleReportConfirm(chatId, userId) {
+    const partner = matchmaking.getPartner(userId);
+    if (!partner) {
+        clearUserState(userId);
+        await sendMessageWithKeyboard(chatId, messages.notInChat, mainMenuKeyboard);
+        return;
+    }
+
     const result = reportUser(userId, partner.partnerId);
+    clearUserState(userId);
+
     if (result.alreadyReported) {
-        await sendMessage(chatId, messages.alreadyReported);
+        await sendMessageWithKeyboard(chatId, messages.alreadyReported, inChatKeyboard);
     } else {
         await sendMessageWithKeyboard(chatId, messages.reported, inChatKeyboard);
     }
+}
+
+/**
+ * Handle Report cancellation
+ */
+export async function handleReportCancel(chatId, userId) {
+    clearUserState(userId);
+    await sendMessageWithKeyboard(chatId, '❌ Report cancelled.', inChatKeyboard);
 }
 
 /**
@@ -252,6 +283,12 @@ export async function handleTextMessage(message, userId, chatId) {
     }
     if (text === BUTTONS.TYPING_ON || text === BUTTONS.TYPING_OFF) {
         return handleSettingsToggle(chatId, userId, text);
+    }
+    if (text === BUTTONS.CONFIRM_REPORT) {
+        return handleReportConfirm(chatId, userId);
+    }
+    if (text === BUTTONS.CANCEL_REPORT) {
+        return handleReportCancel(chatId, userId);
     }
 
     // Handle gender selection state

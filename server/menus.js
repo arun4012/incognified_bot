@@ -25,7 +25,11 @@ export const BUTTONS = {
 
     // Settings
     TYPING_ON: '✅ Typing Indicator: ON',
-    TYPING_OFF: '❌ Typing Indicator: OFF'
+    TYPING_OFF: '❌ Typing Indicator: OFF',
+
+    // Report confirmation
+    CONFIRM_REPORT: '✅ Yes, Report',
+    CANCEL_REPORT: '❌ Cancel'
 };
 
 /**
@@ -92,6 +96,17 @@ export const searchingKeyboard = {
 };
 
 /**
+ * Report confirmation keyboard
+ */
+export const reportConfirmKeyboard = {
+    keyboard: [
+        [{ text: BUTTONS.CONFIRM_REPORT }, { text: BUTTONS.CANCEL_REPORT }]
+    ],
+    resize_keyboard: true,
+    one_time_keyboard: true
+};
+
+/**
  * Generate settings keyboard based on user's current settings
  * @param {object} settings - User's current settings
  * @returns {object} Reply keyboard object
@@ -142,6 +157,7 @@ export default {
     genderPreferenceKeyboard,
     inChatKeyboard,
     searchingKeyboard,
+    reportConfirmKeyboard,
     getSettingsKeyboard,
     removeKeyboard,
     isButton,

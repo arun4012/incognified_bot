@@ -10,7 +10,8 @@ export const USER_STATES = {
     SELECTING_GENDER: 'selecting_gender',
     SELECTING_PREFERENCE: 'selecting_preference',
     SEARCHING: 'searching',
-    IN_CHAT: 'in_chat'
+    IN_CHAT: 'in_chat',
+    CONFIRMING_REPORT: 'confirming_report'
 };
 
 // In-memory storage
