@@ -117,7 +117,9 @@ export async function handlePreferenceChoice(chatId, userId, prefText) {
     }
 
     // Get gender from persistent settings (defaults to 'any')
+    console.log(`[PreferenceChoice] userId: ${userId}, type: ${typeof userId}`);
     const gender = getUserGenderSetting(userId);
+    console.log(`[PreferenceChoice] Retrieved gender: ${gender}`);
 
     // Update session preference for matchmaking
     setUserGender(userId, gender, preference);
@@ -259,7 +261,7 @@ export async function handleCallbackQuery(callbackQuery) {
         case 'set_gender_any': {
             // Extract gender from callback data
             const gender = data.replace('set_gender_', '');
-            console.log(`[Gender Callback] User ${userId} setting gender to: ${gender}`);
+            console.log(`[Gender Callback] User ${userId} (type: ${typeof userId}) setting gender to: ${gender}`);
             setUserGenderSetting(userId, gender);
             const settings = getUserSettings(userId);
             console.log(`[Gender Callback] Updated settings:`, settings);
