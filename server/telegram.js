@@ -250,6 +250,41 @@ export async function editMessageReplyMarkup(chatId, messageId, replyMarkup) {
     }
 }
 
+/**
+ * Edit an existing message's text and keyboard
+ * @param {string} chatId - Chat ID
+ * @param {number} messageId - Message ID to edit
+ * @param {string} text - New message text
+ * @param {object} replyMarkup - New inline keyboard (optional)
+ */
+export async function editMessageText(chatId, messageId, text, replyMarkup = null) {
+    try {
+        const body = {
+            chat_id: chatId,
+            message_id: messageId,
+            text: text,
+            parse_mode: 'HTML'
+        };
+        if (replyMarkup) {
+            body.reply_markup = replyMarkup;
+        }
+
+        const response = await fetch(`${TELEGRAM_API_BASE}/editMessageText`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+        return { success: data.ok, data: data.result };
+    } catch (error) {
+        console.error('Failed to edit message text:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
 export const messages = {
     welcome: `🎭 <b>Welcome to Incognified Bot!</b>
 
@@ -371,5 +406,6 @@ export default {
     getMe,
     answerCallbackQuery,
     editMessageReplyMarkup,
+    editMessageText,
     messages
 };

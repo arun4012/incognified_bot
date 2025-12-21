@@ -3,7 +3,7 @@
  * Handles menu buttons, commands, and message routing
  */
 
-import { sendMessage, sendMessageWithKeyboard, sendTypingAction, messages, answerCallbackQuery, editMessageReplyMarkup } from './telegram.js';
+import { sendMessage, sendMessageWithKeyboard, sendTypingAction, messages, answerCallbackQuery, editMessageReplyMarkup, editMessageText } from './telegram.js';
 import matchmaking from './matchmaking.js';
 import { isRateLimited, validateMessage } from './utils.js';
 import {
@@ -244,16 +244,21 @@ export async function handleCallbackQuery(callbackQuery) {
     const chatId = message.chat.id.toString();
     const messageId = message.message_id;
 
-    // Answer the callback query immediately (prevents loading indicator)
-    await answerCallbackQuery(queryId);
+    // Labels for user-friendly messages
+    const genderLabels = { male: '👨 Male', female: '👩 Female', any: '🎲 Anyone' };
 
     switch (data) {
         case 'toggle_typing': {
             // Toggle typing indicator setting
-            toggleTypingIndicator(userId);
+            const newValue = toggleTypingIndicator(userId);
             const settings = getUserSettings(userId);
             const newKeyboard = getSettingsInlineKeyboard(settings);
-            await editMessageReplyMarkup(chatId, messageId, newKeyboard);
+
+            // Show toast notification
+            await answerCallbackQuery(queryId, `✅ Typing Indicator ${newValue ? 'ON' : 'OFF'}`);
+
+            // Refresh full settings message
+            await editMessageText(chatId, messageId, messages.settings(settings.typingIndicator, settings.gender), newKeyboard);
             break;
         }
 
@@ -262,17 +267,20 @@ export async function handleCallbackQuery(callbackQuery) {
         case 'set_gender_any': {
             // Extract gender from callback data
             const gender = data.replace('set_gender_', '');
-            console.log(`[Gender Callback] User ${userId} (type: ${typeof userId}) setting gender to: ${gender}`);
             setUserGenderSetting(userId, gender);
             const settings = getUserSettings(userId);
-            console.log(`[Gender Callback] Updated settings:`, settings);
             const newKeyboard = getSettingsInlineKeyboard(settings);
-            console.log(`[Gender Callback] New keyboard generated`);
-            await editMessageReplyMarkup(chatId, messageId, newKeyboard);
+
+            // Show toast notification with gender label
+            await answerCallbackQuery(queryId, `✅ Gender set to ${genderLabels[gender]}`);
+
+            // Refresh full settings message
+            await editMessageText(chatId, messageId, messages.settings(settings.typingIndicator, settings.gender), newKeyboard);
             break;
         }
 
         default:
+            await answerCallbackQuery(queryId);
             console.log('Unknown callback data:', data);
     }
 }
