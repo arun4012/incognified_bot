@@ -485,15 +485,25 @@ You're sending messages too fast. Please wait a moment.`,
 
 💡 <i>Tip: Set your gender in /settings for better matching!</i>`,
 
-    settings: (typingEnabled, gender) => {
+    settings: (typingEnabled, gender, age) => {
         const genderLabels = { male: '👨 Male', female: '👩 Female', any: '🎲 Anyone' };
+        const ageText = age ? `🎂 Age: ${age}` : '🎂 Age: Not set';
         return `⚙️ <b>Settings</b>
 
 👤 Your Gender: ${genderLabels[gender] || '🎲 Anyone'}
+${ageText}
 🔤 Typing Indicator: ${typingEnabled ? '✅ ON' : '❌ OFF'}
 
 <i>Tap buttons below to change settings.</i>`;
     },
+
+    enterAge: `🎂 <b>Set Your Age</b>
+
+Please type your age (13-99):`,
+
+    ageSet: (age) => `✅ Age set to ${age}!`,
+
+    invalidAge: `❌ Please enter a valid age between 13 and 99.`,
 
     settingsUpdated: (setting, value) => `✅ ${setting} is now ${value ? 'ON' : 'OFF'}`,
 

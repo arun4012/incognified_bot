@@ -11,7 +11,8 @@ export const USER_STATES = {
     SELECTING_PREFERENCE: 'selecting_preference',
     SEARCHING: 'searching',
     IN_CHAT: 'in_chat',
-    CONFIRMING_REPORT: 'confirming_report'
+    CONFIRMING_REPORT: 'confirming_report',
+    SETTING_AGE: 'setting_age'
 };
 
 // In-memory storage
@@ -114,6 +115,13 @@ export function setUserGenderSetting(userId, gender) {
 export function getUserGenderSetting(userId) {
     const settings = getUserSettings(userId);
     return settings.gender || 'any';
+}
+
+/**
+ * Set user's age in settings
+ */
+export function setUserAge(userId, age) {
+    updateUserSettings(userId, { age });
 }
 
 // ============ Stats Management ============
@@ -393,5 +401,6 @@ export default {
     getRevealRequest,
     hasUserRequestedReveal,
     clearRevealRequest,
+    setUserAge,
     cleanup
 };

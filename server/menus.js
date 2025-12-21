@@ -126,11 +126,15 @@ export const skippedKeyboard = {
 export function getSettingsInlineKeyboard(settings = {}) {
     const typingEnabled = settings.typingIndicator !== false;
     const currentGender = settings.gender || 'any';
+    const currentAge = settings.age;
 
     // Gender button labels with checkmark for selected
     const maleLabel = currentGender === 'male' ? '✅ Male' : '👨 Male';
     const femaleLabel = currentGender === 'female' ? '✅ Female' : '👩 Female';
     const anyLabel = currentGender === 'any' ? '✅ Anyone' : '🎲 Anyone';
+
+    // Age label
+    const ageLabel = currentAge ? `🎂 Age: ${currentAge}` : '🎂 Set Age';
 
     return {
         inline_keyboard: [
@@ -140,6 +144,8 @@ export function getSettingsInlineKeyboard(settings = {}) {
                 { text: femaleLabel, callback_data: 'set_gender_female' },
                 { text: anyLabel, callback_data: 'set_gender_any' }
             ],
+            // Age setting row
+            [{ text: ageLabel, callback_data: 'set_age' }],
             // Typing indicator toggle
             [{
                 text: typingEnabled ? '✅ Typing Indicator: ON' : '❌ Typing Indicator: OFF',

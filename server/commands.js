@@ -38,7 +38,8 @@ import {
     setRevealRequest,
     getRevealRequest,
     hasUserRequestedReveal,
-    clearRevealRequest
+    clearRevealRequest,
+    setUserAge
 } from './userState.js';
 
 // Set up matchmaking response handler
@@ -286,7 +287,7 @@ export async function handleReveal(chatId, userId, username) {
 export async function handleSettings(chatId, userId) {
     const settings = getUserSettings(userId);
     const inlineKeyboard = getSettingsInlineKeyboard(settings);
-    await sendMessageWithKeyboard(chatId, messages.settings(settings.typingIndicator, settings.gender), inlineKeyboard);
+    await sendMessageWithKeyboard(chatId, messages.settings(settings.typingIndicator, settings.gender, settings.age), inlineKeyboard);
 }
 
 /**
@@ -350,7 +351,15 @@ export async function handleCallbackQuery(callbackQuery) {
             await answerCallbackQuery(queryId, `✅ Gender set to ${genderLabels[gender]}`);
 
             // Refresh full settings message
-            await editMessageText(chatId, messageId, messages.settings(settings.typingIndicator, settings.gender), newKeyboard);
+            await editMessageText(chatId, messageId, messages.settings(settings.typingIndicator, settings.gender, settings.age), newKeyboard);
+            break;
+        }
+
+        case 'set_age': {
+            // Set user state to awaiting age input
+            setUserState(userId, USER_STATES.SETTING_AGE);
+            await answerCallbackQuery(queryId, '🎂 Enter your age');
+            await sendMessage(chatId, messages.enterAge);
             break;
         }
 
@@ -468,6 +477,21 @@ export async function handleTextMessage(message, userId, chatId) {
             return handlePreferenceChoice(chatId, userId, text);
         }
         await sendMessageWithKeyboard(chatId, messages.selectPreference, genderPreferenceKeyboard);
+        return;
+    }
+
+    // Handle age input state
+    if (userState.state === USER_STATES.SETTING_AGE) {
+        const age = parseInt(text, 10);
+        if (isNaN(age) || age < 13 || age > 99) {
+            await sendMessage(chatId, messages.invalidAge);
+            return;
+        }
+
+        // Save age and clear state
+        setUserAge(userId, age);
+        clearUserState(userId);
+        await sendMessage(chatId, messages.ageSet(age));
         return;
     }
 
