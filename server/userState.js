@@ -1,8 +1,15 @@
 /**
  * User state management
  * Handles user settings, stats, reports, and state tracking
- * All data is in-memory (no persistence)
+ * Settings and stats persist to Redis when available
  */
+
+import {
+    getUserSettingsFromRedis,
+    saveUserSettingsToRedis,
+    getUserStatsFromRedis,
+    saveUserStatsToRedis
+} from './redis.js';
 
 // User states
 export const USER_STATES = {
@@ -78,18 +85,46 @@ export function getUserGender(userId) {
 // ============ Settings Management ============
 
 /**
- * Get user settings
+ * Get user settings (from in-memory cache)
+ * Settings are loaded from Redis on first interaction via loadUserFromRedis
  */
 export function getUserSettings(userId) {
     return userSettings.get(userId) || { typingIndicator: true, gender: 'any' };
 }
 
 /**
- * Update user settings
+ * Update user settings (writes to both memory and Redis)
  */
 export function updateUserSettings(userId, updates) {
     const current = getUserSettings(userId);
-    userSettings.set(userId, { ...current, ...updates });
+    const newSettings = { ...current, ...updates };
+    userSettings.set(userId, newSettings);
+
+    // Persist to Redis in background (fire and forget)
+    saveUserSettingsToRedis(userId, newSettings).catch(err => {
+        console.error('Failed to save settings to Redis:', err);
+    });
+}
+
+/**
+ * Load user settings from Redis into memory cache
+ * Call this when user first interacts
+ */
+export async function loadUserSettingsFromRedis(userId) {
+    try {
+        const redisSettings = await getUserSettingsFromRedis(userId);
+        if (redisSettings) {
+            // Parse if string, otherwise use as-is
+            const settings = typeof redisSettings === 'string'
+                ? JSON.parse(redisSettings)
+                : redisSettings;
+            userSettings.set(userId, settings);
+            return settings;
+        }
+    } catch (error) {
+        console.error('Failed to load settings from Redis:', error);
+    }
+    return null;
 }
 
 /**
@@ -127,10 +162,20 @@ export function setUserAge(userId, age) {
 // ============ Stats Management ============
 
 /**
- * Get user stats
+ * Get user stats (from in-memory cache)
  */
 export function getUserStats(userId) {
     return userStats.get(userId) || { chats: 0, messages: 0, totalDuration: 0 };
+}
+
+/**
+ * Update and persist stats helper
+ */
+function updateAndPersistStats(userId, newStats) {
+    userStats.set(userId, newStats);
+    saveUserStatsToRedis(userId, newStats).catch(err => {
+        console.error('Failed to save stats to Redis:', err);
+    });
 }
 
 /**
@@ -138,7 +183,7 @@ export function getUserStats(userId) {
  */
 export function incrementChatCount(userId) {
     const current = getUserStats(userId);
-    userStats.set(userId, { ...current, chats: current.chats + 1 });
+    updateAndPersistStats(userId, { ...current, chats: current.chats + 1 });
 }
 
 /**
@@ -146,7 +191,7 @@ export function incrementChatCount(userId) {
  */
 export function incrementMessageCount(userId) {
     const current = getUserStats(userId);
-    userStats.set(userId, { ...current, messages: current.messages + 1 });
+    updateAndPersistStats(userId, { ...current, messages: current.messages + 1 });
 }
 
 /**
@@ -154,7 +199,26 @@ export function incrementMessageCount(userId) {
  */
 export function addChatDuration(userId, durationMs) {
     const current = getUserStats(userId);
-    userStats.set(userId, { ...current, totalDuration: current.totalDuration + durationMs });
+    updateAndPersistStats(userId, { ...current, totalDuration: current.totalDuration + durationMs });
+}
+
+/**
+ * Load user stats from Redis into memory cache
+ */
+export async function loadUserStatsFromRedis(userId) {
+    try {
+        const redisStats = await getUserStatsFromRedis(userId);
+        if (redisStats) {
+            const stats = typeof redisStats === 'string'
+                ? JSON.parse(redisStats)
+                : redisStats;
+            userStats.set(userId, stats);
+            return stats;
+        }
+    } catch (error) {
+        console.error('Failed to load stats from Redis:', error);
+    }
+    return null;
 }
 
 /**
@@ -402,5 +466,7 @@ export default {
     hasUserRequestedReveal,
     clearRevealRequest,
     setUserAge,
+    loadUserSettingsFromRedis,
+    loadUserStatsFromRedis,
     cleanup
 };

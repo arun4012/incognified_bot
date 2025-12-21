@@ -110,6 +110,12 @@ app.post('/webhook', async (req, res) => {
             return;
         }
 
+        // Load user data from Redis on first interaction (fire and forget)
+        import('./userState.js').then(({ loadUserSettingsFromRedis, loadUserStatsFromRedis }) => {
+            loadUserSettingsFromRedis(userId);
+            loadUserStatsFromRedis(userId);
+        });
+
         // Check if it's a command
         if (message.text && isCommand(message.text)) {
             const { command } = parseCommand(message.text);
