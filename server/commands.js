@@ -44,6 +44,12 @@ matchmaking.setResponseCallback(handleMatchmakingMessage);
  * Handle /start command - show welcome with main menu
  */
 export async function handleStart(chatId, userId) {
+    // Check if already in a chat
+    if (matchmaking.isInChat(userId)) {
+        await sendMessageWithKeyboard(chatId, messages.alreadyInChat, inChatKeyboard);
+        return;
+    }
+
     clearUserState(userId);
     await sendMessageWithKeyboard(chatId, messages.welcome, mainMenuKeyboard);
 }
