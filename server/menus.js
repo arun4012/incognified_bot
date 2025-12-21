@@ -29,7 +29,10 @@ export const BUTTONS = {
     CANCEL_REPORT: '❌ Cancel',
 
     // Undo skip
-    UNDO_SKIP: '🔄 Undo Skip'
+    UNDO_SKIP: '🔄 Undo Skip',
+
+    // Reveal
+    REVEAL: '🔓 Reveal'
 };
 
 /**
@@ -77,7 +80,7 @@ export const genderPreferenceKeyboard = {
 export const inChatKeyboard = {
     keyboard: [
         [{ text: BUTTONS.NEXT_PARTNER }, { text: BUTTONS.STOP_CHAT }],
-        [{ text: BUTTONS.REPORT }]
+        [{ text: BUTTONS.REVEAL }, { text: BUTTONS.REPORT }]
     ],
     resize_keyboard: true,
     one_time_keyboard: false
@@ -148,6 +151,18 @@ export function getSettingsInlineKeyboard(settings = {}) {
         ]
     };
 }
+
+/**
+ * Reveal confirmation inline keyboard
+ */
+export const revealConfirmKeyboard = {
+    inline_keyboard: [
+        [
+            { text: '✅ Accept Reveal', callback_data: 'reveal_accept' },
+            { text: '❌ Decline', callback_data: 'reveal_decline' }
+        ]
+    ]
+};
 
 /**
  * Remove keyboard (hide it)
