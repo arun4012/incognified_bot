@@ -140,10 +140,12 @@ app.post('/webhook', async (req, res) => {
                     await handleTextMessage(message, userId, chatId);
                     break;
             }
-        } else if (message.text) {
-            // Regular text message or menu button - unified handler
-            // Also trigger typing indicator for partner
-            handleTypingFromUser(userId);
+        } else if (message.text || message.photo || message.video || message.sticker || message.voice || message.animation || message.video_note || message.document) {
+            // Text or media message - unified handler
+            // Also trigger typing indicator for partner (only for text)
+            if (message.text) {
+                handleTypingFromUser(userId);
+            }
             await handleTextMessage(message, userId, chatId);
         }
 
