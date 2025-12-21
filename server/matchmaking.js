@@ -238,23 +238,36 @@ export function handleNext(userId, chatId) {
         });
 
         console.log(`User ${userId} skipped ${partnerId}`);
+
+        // Send skipped notification only when there was a partner
+        sendResponse({
+            type: 'skipped',
+            userId,
+            chatId
+        });
+
+        // Now rejoin the queue with same preferences
+        handleJoin(userId, chatId, genderInfo || {});
+    } else {
+        // User wasn't in a chat - check if they were in queue
+        const queueIndex = waitingQueue.findIndex(u => u.userId === userId);
+        if (queueIndex !== -1) {
+            // They were searching, just cancel and go back to menu
+            waitingQueue.splice(queueIndex, 1);
+            sendResponse({
+                type: 'not_in_chat',
+                userId,
+                chatId
+            });
+        } else {
+            // Not in chat or queue
+            sendResponse({
+                type: 'not_in_chat',
+                userId,
+                chatId
+            });
+        }
     }
-
-    // Remove from queue if they were waiting
-    const queueIndex = waitingQueue.findIndex(u => u.userId === userId);
-    if (queueIndex !== -1) {
-        waitingQueue.splice(queueIndex, 1);
-    }
-
-    // Send skipped notification
-    sendResponse({
-        type: 'skipped',
-        userId,
-        chatId
-    });
-
-    // Now rejoin the queue with same preferences
-    handleJoin(userId, chatId, genderInfo || {});
 }
 
 /**
