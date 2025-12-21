@@ -111,11 +111,11 @@ app.post('/webhook', async (req, res) => {
 
         // Check if it's a command
         if (message.text && isCommand(message.text)) {
-            const { command, args } = parseCommand(message.text);
+            const { command } = parseCommand(message.text);
 
             switch (command) {
                 case '/start':
-                    await handleStart(chatId, userId, args);
+                    await handleStart(chatId, userId);
                     break;
                 case '/find':
                     await handleFind(chatId, userId);

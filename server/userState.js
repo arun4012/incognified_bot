@@ -31,11 +31,6 @@ const LONG_BAN_DURATION = 24 * 60 * 60 * 1000;  // 24 hours
 const skippedPartners = new Map(); // userId -> { partnerId, partnerChatId, timestamp }
 const UNDO_TIMEOUT = 10 * 1000; // 10 seconds
 
-// Reveal feature tracking
-const revealRequests = new Map(); // `${userA}_${userB}` -> { requesterId, timestamp }
-const connectCodes = new Map();   // connectCode -> { user1Id, user2Id, user1Name, user2Name, createdAt }
-const CONNECT_CODE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
-
 // ============ State Management ============
 
 /**
@@ -296,108 +291,6 @@ export function clearSkippedPartner(userId) {
 }
 
 
-// ============ Reveal Feature ============
-
-/**
- * Generate a pair key for two users (order-independent)
- */
-function getPairKey(userId1, userId2) {
-    return [userId1, userId2].sort().join('_');
-}
-
-/**
- * Set a reveal request from one user to their partner
- */
-export function setRevealRequest(requesterId, partnerId) {
-    const key = getPairKey(requesterId, partnerId);
-    revealRequests.set(key, { requesterId, timestamp: Date.now() });
-}
-
-/**
- * Check if a reveal request exists between two users
- * @returns {object|null} - { requesterId } or null
- */
-export function getRevealRequest(userId1, userId2) {
-    const key = getPairKey(userId1, userId2);
-    return revealRequests.get(key) || null;
-}
-
-/**
- * Check if user has already sent a reveal request
- */
-export function hasUserRequestedReveal(requesterId, partnerId) {
-    const request = getRevealRequest(requesterId, partnerId);
-    return request && request.requesterId === requesterId;
-}
-
-/**
- * Clear reveal request between two users
- */
-export function clearRevealRequest(userId1, userId2) {
-    const key = getPairKey(userId1, userId2);
-    revealRequests.delete(key);
-}
-
-/**
- * Generate a unique connect code
- */
-function generateConnectCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-}
-
-/**
- * Create a connect code for two users who mutually agreed to reveal
- */
-export function createConnectCode(user1Id, user2Id, user1Name, user2Name) {
-    const code = generateConnectCode();
-    connectCodes.set(code, {
-        user1Id,
-        user2Id,
-        user1Name,
-        user2Name,
-        createdAt: Date.now()
-    });
-    return code;
-}
-
-/**
- * Get connect code data
- */
-export function getConnectCodeData(code) {
-    const data = connectCodes.get(code);
-    if (!data) return null;
-
-    // Check if expired
-    if (Date.now() - data.createdAt > CONNECT_CODE_EXPIRY) {
-        connectCodes.delete(code);
-        return null;
-    }
-
-    return data;
-}
-
-/**
- * Get partner info from connect code for a specific user
- */
-export function getConnectPartner(code, userId) {
-    const data = getConnectCodeData(code);
-    if (!data) return null;
-
-    if (data.user1Id === userId) {
-        return { partnerId: data.user2Id, partnerName: data.user2Name };
-    } else if (data.user2Id === userId) {
-        return { partnerId: data.user1Id, partnerName: data.user1Name };
-    }
-
-    return null; // User not part of this connect code
-}
-
-
 // ============ Cleanup ============
 
 /**
@@ -451,12 +344,5 @@ export default {
     setSkippedPartner,
     getSkippedPartner,
     clearSkippedPartner,
-    setRevealRequest,
-    getRevealRequest,
-    hasUserRequestedReveal,
-    clearRevealRequest,
-    createConnectCode,
-    getConnectCodeData,
-    getConnectPartner,
     cleanup
 };

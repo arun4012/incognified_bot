@@ -531,39 +531,7 @@ Due to reports from other users, you cannot search for partners for ${minutes} m
 
 Please be respectful to others.`,
 
-    backToMenu: `👋 Returning to main menu...`,
-
-    // Reveal feature
-    revealSent: `🔓 <b>Reveal request sent!</b>
-
-Waiting for your partner to accept...`,
-
-    revealReceived: `🔓 <b>Your partner wants to reveal identities!</b>
-
-If you both accept, you'll receive a link to reconnect outside this anonymous chat.
-
-Do you want to reveal?`,
-
-    revealAccepted: (connectLink) => `🎉 <b>Both of you agreed to reveal!</b>
-
-Share this link to reconnect anytime:
-${connectLink}
-
-<i>This link is valid for 7 days.</i>`,
-
-    revealDeclined: `❌ Your partner declined to reveal their identity.
-
-You can continue chatting anonymously.`,
-
-    alreadyRequested: `⏳ You already sent a reveal request. Waiting for your partner to respond...`,
-
-    connectInfo: (partnerName) => `👋 <b>Connect Link Used!</b>
-
-Your chat partner's name: <b>${partnerName}</b>
-
-You can now message each other directly if you exchange usernames in this chat!`,
-
-    invalidConnect: `❌ This connect link is invalid or has expired.`
+    backToMenu: `👋 Returning to main menu...`
 };
 
 export default {

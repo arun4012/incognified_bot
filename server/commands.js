@@ -15,8 +15,7 @@ import {
     searchingKeyboard,
     reportConfirmKeyboard,
     skippedKeyboard,
-    getSettingsInlineKeyboard,
-    revealConfirmKeyboard
+    getSettingsInlineKeyboard
 } from './menus.js';
 import {
     USER_STATES,
@@ -35,13 +34,7 @@ import {
     getSkippedPartner,
     clearSkippedPartner,
     setUserGenderSetting,
-    getUserGenderSetting,
-    setRevealRequest,
-    getRevealRequest,
-    hasUserRequestedReveal,
-    clearRevealRequest,
-    createConnectCode,
-    getConnectPartner
+    getUserGenderSetting
 } from './userState.js';
 
 // Set up matchmaking response handler
@@ -49,22 +42,8 @@ matchmaking.setResponseCallback(handleMatchmakingMessage);
 
 /**
  * Handle /start command - show welcome with main menu
- * Also handles connect links: /start connect_ABC123
  */
-export async function handleStart(chatId, userId, args = '') {
-    // Check for connect link
-    if (args && args.startsWith('connect_')) {
-        const connectCode = args.replace('connect_', '');
-        const partnerInfo = getConnectPartner(connectCode, userId);
-
-        if (partnerInfo) {
-            await sendMessageWithKeyboard(chatId, messages.connectInfo(partnerInfo.partnerName), mainMenuKeyboard);
-        } else {
-            await sendMessageWithKeyboard(chatId, messages.invalidConnect, mainMenuKeyboard);
-        }
-        return;
-    }
-
+export async function handleStart(chatId, userId) {
     // Check if already in a chat
     if (matchmaking.isInChat(userId)) {
         await sendMessageWithKeyboard(chatId, messages.alreadyInChat, inChatKeyboard);
@@ -247,54 +226,6 @@ export async function handleStop(chatId, userId) {
 }
 
 /**
- * Handle Reveal button - send reveal request to partner
- */
-export async function handleReveal(chatId, userId, firstName) {
-    // Check if in a chat
-    const partner = matchmaking.getPartner(userId);
-    if (!partner) {
-        await sendMessageWithKeyboard(chatId, messages.notInChat, mainMenuKeyboard);
-        return;
-    }
-
-    const partnerId = partner.partnerId;
-    const partnerChatId = partner.partnerChatId;
-
-    // Check if already sent a reveal request
-    if (hasUserRequestedReveal(userId, partnerId)) {
-        await sendMessage(chatId, messages.alreadyRequested);
-        return;
-    }
-
-    // Check if partner already sent a reveal request (mutual accept)
-    const existingRequest = getRevealRequest(userId, partnerId);
-    if (existingRequest && existingRequest.requesterId === partnerId) {
-        // Partner already requested - this is mutual acceptance!
-        clearRevealRequest(userId, partnerId);
-
-        // Get partner's first name from matchmaking (we stored it when they connected)
-        // For now, use a placeholder - we'll get the real name from the callback
-        const connectCode = createConnectCode(userId, partnerId, firstName, 'Partner');
-        const botUsername = process.env.BOT_USERNAME || 'incognified_bot';
-        const connectLink = `https://t.me/${botUsername}?start=connect_${connectCode}`;
-
-        // Notify both users
-        await sendMessageWithKeyboard(chatId, messages.revealAccepted(connectLink), inChatKeyboard);
-        await sendMessageWithKeyboard(partnerChatId, messages.revealAccepted(connectLink), inChatKeyboard);
-        return;
-    }
-
-    // Set the reveal request
-    setRevealRequest(userId, partnerId);
-
-    // Notify the user who sent the request
-    await sendMessage(chatId, messages.revealSent);
-
-    // Send reveal request to partner with inline buttons
-    await sendMessageWithKeyboard(partnerChatId, messages.revealReceived, revealConfirmKeyboard);
-}
-
-/**
  * Handle Settings command - show settings with inline keyboard
  */
 export async function handleSettings(chatId, userId) {
@@ -365,64 +296,6 @@ export async function handleCallbackQuery(callbackQuery) {
 
             // Refresh full settings message
             await editMessageText(chatId, messageId, messages.settings(settings.typingIndicator, settings.gender), newKeyboard);
-            break;
-        }
-
-        case 'reveal_accept': {
-            // User accepted reveal request
-            const partner = matchmaking.getPartner(userId);
-            if (!partner) {
-                await answerCallbackQuery(queryId, '❌ You are no longer in a chat');
-                return;
-            }
-
-            const partnerId = partner.partnerId;
-            const partnerChatId = partner.partnerChatId;
-            const firstName = from.first_name || 'Anonymous';
-
-            // Check if there's a pending request from partner
-            const request = getRevealRequest(userId, partnerId);
-            if (!request) {
-                await answerCallbackQuery(queryId, '❌ Reveal request expired');
-                return;
-            }
-
-            // Clear the request and create connect code
-            clearRevealRequest(userId, partnerId);
-
-            const connectCode = createConnectCode(userId, partnerId, firstName, 'Partner');
-            const botUsername = process.env.BOT_USERNAME || 'incognified_bot';
-            const connectLink = `https://t.me/${botUsername}?start=connect_${connectCode}`;
-
-            await answerCallbackQuery(queryId, '✅ Reveal accepted!');
-
-            // Notify both users
-            await sendMessageWithKeyboard(chatId, messages.revealAccepted(connectLink), inChatKeyboard);
-            await sendMessageWithKeyboard(partnerChatId, messages.revealAccepted(connectLink), inChatKeyboard);
-            break;
-        }
-
-        case 'reveal_decline': {
-            // User declined reveal request
-            const partner = matchmaking.getPartner(userId);
-            if (!partner) {
-                await answerCallbackQuery(queryId, '❌ You are no longer in a chat');
-                return;
-            }
-
-            const partnerId = partner.partnerId;
-            const partnerChatId = partner.partnerChatId;
-
-            // Clear the request
-            clearRevealRequest(userId, partnerId);
-
-            await answerCallbackQuery(queryId, '❌ Reveal declined');
-
-            // Notify requester
-            await sendMessage(partnerChatId, messages.revealDeclined);
-
-            // Confirm to decliner
-            await sendMessage(chatId, '✅ You declined the reveal request. Chat continues anonymously.');
             break;
         }
 
@@ -513,10 +386,6 @@ export async function handleTextMessage(message, userId, chatId) {
     }
     if (text === BUTTONS.REPORT) {
         return handleReport(chatId, userId);
-    }
-    if (text === BUTTONS.REVEAL) {
-        const firstName = message.from?.first_name || 'Anonymous';
-        return handleReveal(chatId, userId, firstName);
     }
     if (text === BUTTONS.CONFIRM_REPORT) {
         return handleReportConfirm(chatId, userId);
