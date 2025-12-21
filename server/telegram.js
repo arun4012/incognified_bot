@@ -308,13 +308,19 @@ You're sending messages too fast. Please wait a moment.`,
 
     selectGender: `👤 <b>Select your gender:</b>`,
 
-    selectPreference: `🎯 <b>Who would you like to chat with?</b>`,
+    selectPreference: `🎯 <b>Who would you like to chat with?</b>
 
-    settings: (typingEnabled) => `⚙️ <b>Settings</b>
+💡 <i>Tip: Set your gender in /settings for better matching!</i>`,
 
-Typing Indicator: ${typingEnabled ? '✅ ON' : '❌ OFF'}
+    settings: (typingEnabled, gender) => {
+        const genderLabels = { male: '👨 Male', female: '👩 Female', any: '🎲 Anyone' };
+        return `⚙️ <b>Settings</b>
 
-<i>When ON, your partner will see when you're typing.</i>`,
+👤 Your Gender: ${genderLabels[gender] || '🎲 Anyone'}
+🔤 Typing Indicator: ${typingEnabled ? '✅ ON' : '❌ OFF'}
+
+<i>Tap buttons below to change settings.</i>`;
+    },
 
     settingsUpdated: (setting, value) => `✅ ${setting} is now ${value ? 'ON' : 'OFF'}`,
 
@@ -330,7 +336,7 @@ Typing Indicator: ${typingEnabled ? '✅ ON' : '❌ OFF'}
 
 🚀 <b>Find Partner</b> - Match with a random stranger
 👩👨 <b>Search by Gender</b> - Choose who to match with
-⚙️ <b>Settings</b> - Toggle typing indicators
+⚙️ <b>Settings</b> - Set your gender & typing indicators
 📊 <b>My Stats</b> - View your chat statistics
 
 <b>While chatting:</b>

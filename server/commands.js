@@ -32,7 +32,9 @@ import {
     reportUser,
     setSkippedPartner,
     getSkippedPartner,
-    clearSkippedPartner
+    clearSkippedPartner,
+    setUserGenderSetting,
+    getUserGenderSetting
 } from './userState.js';
 
 // Set up matchmaking response handler
@@ -65,7 +67,7 @@ export async function handleFind(chatId, userId) {
 }
 
 /**
- * Handle "Search by Gender" button - show gender selection
+ * Handle "Search by Gender" button - show preference selection directly
  */
 export async function handleGenderSelect(chatId, userId) {
     // Check if banned
@@ -75,8 +77,9 @@ export async function handleGenderSelect(chatId, userId) {
         return;
     }
 
-    setUserState(userId, USER_STATES.SELECTING_GENDER);
-    await sendMessageWithKeyboard(chatId, messages.selectGender, genderSelectKeyboard);
+    // Skip gender selection, go directly to preference
+    setUserState(userId, USER_STATES.SELECTING_PREFERENCE);
+    await sendMessageWithKeyboard(chatId, messages.selectPreference, genderPreferenceKeyboard);
 }
 
 /**
@@ -113,11 +116,10 @@ export async function handlePreferenceChoice(chatId, userId, prefText) {
         return;
     }
 
-    // Get saved gender
-    const state = getUserState(userId);
-    const gender = state.gender || 'any';
+    // Get gender from persistent settings (defaults to 'any')
+    const gender = getUserGenderSetting(userId);
 
-    // Update preference
+    // Update session preference for matchmaking
     setUserGender(userId, gender, preference);
 
     // Display labels
@@ -207,7 +209,7 @@ export async function handleStop(chatId, userId) {
 export async function handleSettings(chatId, userId) {
     const settings = getUserSettings(userId);
     const inlineKeyboard = getSettingsInlineKeyboard(settings);
-    await sendMessageWithKeyboard(chatId, messages.settings(settings.typingIndicator), inlineKeyboard);
+    await sendMessageWithKeyboard(chatId, messages.settings(settings.typingIndicator, settings.gender), inlineKeyboard);
 }
 
 /**
@@ -243,15 +245,26 @@ export async function handleCallbackQuery(callbackQuery) {
     await answerCallbackQuery(queryId);
 
     switch (data) {
-        case 'toggle_typing':
+        case 'toggle_typing': {
             // Toggle typing indicator setting
-            const newValue = toggleTypingIndicator(userId);
+            toggleTypingIndicator(userId);
             const settings = getUserSettings(userId);
             const newKeyboard = getSettingsInlineKeyboard(settings);
-
-            // Update the message with new keyboard
             await editMessageReplyMarkup(chatId, messageId, newKeyboard);
             break;
+        }
+
+        case 'set_gender_male':
+        case 'set_gender_female':
+        case 'set_gender_any': {
+            // Extract gender from callback data
+            const gender = data.replace('set_gender_', '');
+            setUserGenderSetting(userId, gender);
+            const settings = getUserSettings(userId);
+            const newKeyboard = getSettingsInlineKeyboard(settings);
+            await editMessageReplyMarkup(chatId, messageId, newKeyboard);
+            break;
+        }
 
         default:
             console.log('Unknown callback data:', data);

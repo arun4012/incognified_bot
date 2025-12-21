@@ -77,7 +77,7 @@ export function getUserGender(userId) {
  * Get user settings
  */
 export function getUserSettings(userId) {
-    return userSettings.get(userId) || { typingIndicator: true };
+    return userSettings.get(userId) || { typingIndicator: true, gender: 'any' };
 }
 
 /**
@@ -96,6 +96,21 @@ export function toggleTypingIndicator(userId) {
     const newValue = !current.typingIndicator;
     updateUserSettings(userId, { typingIndicator: newValue });
     return newValue;
+}
+
+/**
+ * Set user's gender in settings (persistent)
+ */
+export function setUserGenderSetting(userId, gender) {
+    updateUserSettings(userId, { gender });
+}
+
+/**
+ * Get user's gender from settings (defaults to 'any')
+ */
+export function getUserGenderSetting(userId) {
+    const settings = getUserSettings(userId);
+    return settings.gender || 'any';
 }
 
 // ============ Stats Management ============
@@ -313,6 +328,8 @@ export default {
     getUserSettings,
     updateUserSettings,
     toggleTypingIndicator,
+    setUserGenderSetting,
+    getUserGenderSetting,
     getUserStats,
     incrementChatCount,
     incrementMessageCount,
