@@ -83,6 +83,144 @@ export async function sendMessageWithKeyboard(chatId, text, keyboard, options = 
 }
 
 /**
+ * Send a photo to a chat
+ */
+export async function sendPhoto(chatId, photoFileId, caption = '') {
+    try {
+        const body = { chat_id: chatId, photo: photoFileId };
+        if (caption) body.caption = caption;
+
+        const response = await fetch(`${TELEGRAM_API_BASE}/sendPhoto`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        return { success: data.ok, data: data.result };
+    } catch (error) {
+        console.error('Failed to send photo:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send a video to a chat
+ */
+export async function sendVideo(chatId, videoFileId, caption = '') {
+    try {
+        const body = { chat_id: chatId, video: videoFileId };
+        if (caption) body.caption = caption;
+
+        const response = await fetch(`${TELEGRAM_API_BASE}/sendVideo`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        return { success: data.ok, data: data.result };
+    } catch (error) {
+        console.error('Failed to send video:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send a sticker to a chat
+ */
+export async function sendSticker(chatId, stickerFileId) {
+    try {
+        const response = await fetch(`${TELEGRAM_API_BASE}/sendSticker`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, sticker: stickerFileId })
+        });
+        const data = await response.json();
+        return { success: data.ok, data: data.result };
+    } catch (error) {
+        console.error('Failed to send sticker:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send a voice message to a chat
+ */
+export async function sendVoice(chatId, voiceFileId) {
+    try {
+        const response = await fetch(`${TELEGRAM_API_BASE}/sendVoice`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, voice: voiceFileId })
+        });
+        const data = await response.json();
+        return { success: data.ok, data: data.result };
+    } catch (error) {
+        console.error('Failed to send voice:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send an animation (GIF) to a chat
+ */
+export async function sendAnimation(chatId, animationFileId, caption = '') {
+    try {
+        const body = { chat_id: chatId, animation: animationFileId };
+        if (caption) body.caption = caption;
+
+        const response = await fetch(`${TELEGRAM_API_BASE}/sendAnimation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        return { success: data.ok, data: data.result };
+    } catch (error) {
+        console.error('Failed to send animation:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send a video note (round video) to a chat
+ */
+export async function sendVideoNote(chatId, videoNoteFileId) {
+    try {
+        const response = await fetch(`${TELEGRAM_API_BASE}/sendVideoNote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, video_note: videoNoteFileId })
+        });
+        const data = await response.json();
+        return { success: data.ok, data: data.result };
+    } catch (error) {
+        console.error('Failed to send video note:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send a document/file to a chat
+ */
+export async function sendDocument(chatId, documentFileId, caption = '') {
+    try {
+        const body = { chat_id: chatId, document: documentFileId };
+        if (caption) body.caption = caption;
+
+        const response = await fetch(`${TELEGRAM_API_BASE}/sendDocument`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        return { success: data.ok, data: data.result };
+    } catch (error) {
+        console.error('Failed to send document:', error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
  * Send typing action (shows "typing..." indicator)
  * @param {string} chatId - Telegram chat ID
  * @returns {Promise<object>} - Telegram API response
@@ -399,6 +537,13 @@ Please be respectful to others.`,
 export default {
     sendMessage,
     sendMessageWithKeyboard,
+    sendPhoto,
+    sendVideo,
+    sendSticker,
+    sendVoice,
+    sendAnimation,
+    sendVideoNote,
+    sendDocument,
     sendTypingAction,
     setWebhook,
     deleteWebhook,

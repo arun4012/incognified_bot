@@ -34,7 +34,7 @@ export function isRateLimited(userId) {
 
   // Increment count and check limit
   userLimit.count++;
-  
+
   if (userLimit.count > MAX_MESSAGES_PER_WINDOW) {
     return true;
   }
@@ -53,29 +53,61 @@ export function resetRateLimit(userId) {
 /**
  * Validate incoming message
  * @param {object} message - Telegram message object
- * @returns {{ valid: boolean, error?: string }}
+ * @returns {{ valid: boolean, error?: string, mediaType?: string, fileId?: string, caption?: string }}
  */
 export function validateMessage(message) {
   if (!message) {
     return { valid: false, error: 'Empty message received' };
   }
 
-  // Check if it's a text message
-  if (!message.text) {
-    return { valid: false, error: 'Only text messages are supported. Please send text only.' };
+  // Check for supported media types
+  if (message.photo) {
+    // Photos come as array, get largest size
+    const photo = message.photo[message.photo.length - 1];
+    return { valid: true, mediaType: 'photo', fileId: photo.file_id, caption: message.caption };
   }
 
-  // Check for empty text
-  if (message.text.trim().length === 0) {
-    return { valid: false, error: 'Please send a non-empty message' };
+  if (message.video) {
+    return { valid: true, mediaType: 'video', fileId: message.video.file_id, caption: message.caption };
   }
 
-  // Check message length (prevent abuse)
-  if (message.text.length > 4096) {
-    return { valid: false, error: 'Message too long. Please keep messages under 4096 characters.' };
+  if (message.sticker) {
+    return { valid: true, mediaType: 'sticker', fileId: message.sticker.file_id };
   }
 
-  return { valid: true };
+  if (message.voice) {
+    return { valid: true, mediaType: 'voice', fileId: message.voice.file_id };
+  }
+
+  if (message.animation) {
+    return { valid: true, mediaType: 'animation', fileId: message.animation.file_id, caption: message.caption };
+  }
+
+  if (message.video_note) {
+    return { valid: true, mediaType: 'video_note', fileId: message.video_note.file_id };
+  }
+
+  if (message.document) {
+    return { valid: true, mediaType: 'document', fileId: message.document.file_id, caption: message.caption };
+  }
+
+  // Check for text message
+  if (message.text) {
+    // Check for empty text
+    if (message.text.trim().length === 0) {
+      return { valid: false, error: 'Please send a non-empty message' };
+    }
+
+    // Check message length (prevent abuse)
+    if (message.text.length > 4096) {
+      return { valid: false, error: 'Message too long. Please keep messages under 4096 characters.' };
+    }
+
+    return { valid: true, mediaType: 'text' };
+  }
+
+  // Unsupported type
+  return { valid: false, error: '❌ This content type is not supported.' };
 }
 
 /**
@@ -85,7 +117,7 @@ export function validateMessage(message) {
  */
 export function extractUserInfo(update) {
   const message = update.message || update.edited_message;
-  
+
   if (!message || !message.from) {
     return null;
   }
@@ -128,7 +160,7 @@ export function parseCommand(text) {
  */
 export function cleanupRateLimits() {
   const now = Date.now();
-  
+
   for (const [userId, data] of rateLimitStore.entries()) {
     if (now - data.windowStart > RATE_LIMIT_WINDOW_MS * 2) {
       rateLimitStore.delete(userId);

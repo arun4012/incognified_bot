@@ -3,7 +3,7 @@
  * Handles menu buttons, commands, and message routing
  */
 
-import { sendMessage, sendMessageWithKeyboard, sendTypingAction, messages, answerCallbackQuery, editMessageReplyMarkup, editMessageText } from './telegram.js';
+import { sendMessage, sendMessageWithKeyboard, sendTypingAction, messages, answerCallbackQuery, editMessageReplyMarkup, editMessageText, sendPhoto, sendVideo, sendSticker, sendVoice, sendAnimation, sendVideoNote, sendDocument } from './telegram.js';
 import matchmaking from './matchmaking.js';
 import { isRateLimited, validateMessage } from './utils.js';
 import {
@@ -429,8 +429,13 @@ export async function handleTextMessage(message, userId, chatId) {
         return;
     }
 
-    // Send to partner via matchmaking
-    matchmaking.handleMessage(userId, text);
+    // Send to partner via matchmaking with media info
+    matchmaking.handleMessage(userId, {
+        text: message.text,
+        mediaType: validation.mediaType,
+        fileId: validation.fileId,
+        caption: validation.caption
+    });
 }
 
 /**
@@ -493,8 +498,38 @@ export async function handleMatchmakingMessage(message) {
             break;
 
         case 'forward_message':
-            if (chatId && text) {
-                await sendMessage(chatId, text);
+            if (chatId) {
+                const { mediaType, fileId, caption, text } = message;
+
+                switch (mediaType) {
+                    case 'photo':
+                        await sendPhoto(chatId, fileId, caption);
+                        break;
+                    case 'video':
+                        await sendVideo(chatId, fileId, caption);
+                        break;
+                    case 'sticker':
+                        await sendSticker(chatId, fileId);
+                        break;
+                    case 'voice':
+                        await sendVoice(chatId, fileId);
+                        break;
+                    case 'animation':
+                        await sendAnimation(chatId, fileId, caption);
+                        break;
+                    case 'video_note':
+                        await sendVideoNote(chatId, fileId);
+                        break;
+                    case 'document':
+                        await sendDocument(chatId, fileId, caption);
+                        break;
+                    case 'text':
+                    default:
+                        if (text) {
+                            await sendMessage(chatId, text);
+                        }
+                        break;
+                }
             }
             break;
 

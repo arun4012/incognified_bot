@@ -271,9 +271,11 @@ export function handleNext(userId, chatId) {
 }
 
 /**
- * Handle forwarding message to partner
+ * Handle forwarding message/media to partner
+ * @param {string} userId - Sender user ID
+ * @param {object} messageData - { text, mediaType, fileId, caption }
  */
-export function handleMessage(userId, text) {
+export function handleMessage(userId, messageData) {
     const chatId = userChatIds.get(userId);
 
     // Find partner
@@ -295,16 +297,16 @@ export function handleMessage(userId, text) {
     // Increment message stats
     incrementMessageCount(userId);
 
-    // Forward message to partner
+    // Forward message/media to partner
     sendResponse({
         type: 'forward_message',
         userId: partnerId,
         chatId: partnerChatId,
-        text,
+        ...messageData,
         fromUserId: userId
     });
 
-    console.log(`Message from ${userId} forwarded to ${partnerId}`);
+    console.log(`Message (${messageData.mediaType || 'text'}) from ${userId} forwarded to ${partnerId}`);
 }
 
 /**
