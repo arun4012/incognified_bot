@@ -17,7 +17,8 @@ import {
     handleSettings,
     handleStats,
     handleHelp,
-    handleCallbackQuery
+    handleCallbackQuery,
+    handleReveal
 } from './commands.js';
 import matchmaking from './matchmaking.js';
 import { setWebhook, getMe } from './telegram.js';
@@ -134,6 +135,10 @@ app.post('/webhook', async (req, res) => {
                     break;
                 case '/help':
                     await handleHelp(chatId, userId);
+                    break;
+                case '/reveal':
+                    // Pass username from message.from for reveal feature
+                    await handleReveal(chatId, userId, message.from?.username);
                     break;
                 default:
                     // Unknown command - treat as text message (might be menu button)

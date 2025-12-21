@@ -34,7 +34,11 @@ import {
     getSkippedPartner,
     clearSkippedPartner,
     setUserGenderSetting,
-    getUserGenderSetting
+    getUserGenderSetting,
+    setRevealRequest,
+    getRevealRequest,
+    hasUserRequestedReveal,
+    clearRevealRequest
 } from './userState.js';
 
 // Set up matchmaking response handler
@@ -223,6 +227,57 @@ export async function handleStop(chatId, userId) {
         // Not in chat or queue
         await sendMessageWithKeyboard(chatId, messages.notInChat, mainMenuKeyboard);
     }
+}
+
+/**
+ * Handle /reveal command - mutual identity reveal with username requirement
+ */
+export async function handleReveal(chatId, userId, username) {
+    // Check if user has a username
+    if (!username) {
+        await sendMessage(chatId, messages.noUsername);
+        return;
+    }
+
+    // Check if in a chat
+    const partner = matchmaking.getPartner(userId);
+    if (!partner) {
+        await sendMessageWithKeyboard(chatId, messages.notInChat, mainMenuKeyboard);
+        return;
+    }
+
+    const partnerId = partner.partnerId;
+    const partnerChatId = partner.partnerChatId;
+
+    // Check if already sent a reveal request
+    if (hasUserRequestedReveal(userId, partnerId)) {
+        await sendMessage(chatId, messages.alreadyRequested);
+        return;
+    }
+
+    // Check if partner already sent a reveal request (mutual accept!)
+    const existingRequest = getRevealRequest(userId, partnerId);
+    if (existingRequest && existingRequest.requesterId === partnerId) {
+        // Partner already requested - mutual acceptance!
+        clearRevealRequest(userId, partnerId);
+
+        // Get partner's stored username (we need to store it when they request)
+        const partnerUsername = existingRequest.username || 'unknown';
+
+        // Notify both users with each other's usernames
+        await sendMessageWithKeyboard(chatId, messages.revealSuccess(username, partnerUsername), inChatKeyboard);
+        await sendMessageWithKeyboard(partnerChatId, messages.revealSuccess(partnerUsername, username), inChatKeyboard);
+        return;
+    }
+
+    // Store reveal request with username
+    setRevealRequest(userId, partnerId, username);
+
+    // Notify the user who sent the request
+    await sendMessage(chatId, messages.revealSent);
+
+    // Notify partner that someone wants to reveal
+    await sendMessage(partnerChatId, messages.revealReceived());
 }
 
 /**

@@ -531,7 +531,35 @@ Due to reports from other users, you cannot search for partners for ${minutes} m
 
 Please be respectful to others.`,
 
-    backToMenu: `👋 Returning to main menu...`
+    backToMenu: `👋 Returning to main menu...`,
+
+    // Reveal feature
+    noUsername: `❌ <b>Username Required</b>
+
+You need to set a Telegram username to use /reveal.
+
+Go to <b>Telegram Settings → Username</b> to set one, then try again.`,
+
+    revealSent: `🔓 <b>Reveal request sent!</b>
+
+Waiting for your partner to accept...
+They can use /reveal to accept, or decline by ignoring.`,
+
+    revealReceived: (requesterHint) => `🔓 <b>Your partner wants to reveal!</b>
+
+If you also want to share usernames, type /reveal
+Otherwise, just continue chatting anonymously.`,
+
+    revealSuccess: (myUsername, partnerUsername) => `🎉 <b>Reveal Successful!</b>
+
+Your partner's username: @${partnerUsername}
+Your username shared: @${myUsername}
+
+You can now message each other directly!`,
+
+    revealDeclined: `❌ Your partner has not accepted the reveal request yet.`,
+
+    alreadyRequested: `⏳ You already sent a reveal request. Waiting for your partner to respond with /reveal...`
 };
 
 export default {

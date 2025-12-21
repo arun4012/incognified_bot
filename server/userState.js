@@ -31,6 +31,9 @@ const LONG_BAN_DURATION = 24 * 60 * 60 * 1000;  // 24 hours
 const skippedPartners = new Map(); // userId -> { partnerId, partnerChatId, timestamp }
 const UNDO_TIMEOUT = 10 * 1000; // 10 seconds
 
+// Reveal request tracking
+const revealRequests = new Map(); // `${userA}_${userB}` (sorted) -> { requesterId, timestamp }
+
 // ============ State Management ============
 
 /**
@@ -291,6 +294,48 @@ export function clearSkippedPartner(userId) {
 }
 
 
+// ============ Reveal Feature ============
+
+/**
+ * Generate a pair key for two users (order-independent)
+ */
+function getPairKey(userId1, userId2) {
+    return [userId1, userId2].sort().join('_');
+}
+
+/**
+ * Set a reveal request from one user to their partner
+ */
+export function setRevealRequest(requesterId, partnerId, username = null) {
+    const key = getPairKey(requesterId, partnerId);
+    revealRequests.set(key, { requesterId, username, timestamp: Date.now() });
+}
+
+/**
+ * Get reveal request between two users
+ */
+export function getRevealRequest(userId1, userId2) {
+    const key = getPairKey(userId1, userId2);
+    return revealRequests.get(key) || null;
+}
+
+/**
+ * Check if user has already sent a reveal request
+ */
+export function hasUserRequestedReveal(requesterId, partnerId) {
+    const request = getRevealRequest(requesterId, partnerId);
+    return request && request.requesterId === requesterId;
+}
+
+/**
+ * Clear reveal request between two users
+ */
+export function clearRevealRequest(userId1, userId2) {
+    const key = getPairKey(userId1, userId2);
+    revealRequests.delete(key);
+}
+
+
 // ============ Cleanup ============
 
 /**
@@ -344,5 +389,9 @@ export default {
     setSkippedPartner,
     getSkippedPartner,
     clearSkippedPartner,
+    setRevealRequest,
+    getRevealRequest,
+    hasUserRequestedReveal,
+    clearRevealRequest,
     cleanup
 };
