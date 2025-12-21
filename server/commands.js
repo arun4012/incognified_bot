@@ -199,10 +199,24 @@ export async function handleUndoSkip(chatId, userId) {
  * Handle /stop or Stop button - leave chat
  */
 export async function handleStop(chatId, userId) {
-    matchmaking.handleLeave(userId);
-    clearUserState(userId);
-    clearSkippedPartner(userId); // Clear any skipped partner data when stopping
-    await sendMessageWithKeyboard(chatId, messages.youLeft, mainMenuKeyboard);
+    // Check if user is actually in a chat or searching
+    const isInChat = matchmaking.isInChat(userId);
+    const isInQueue = matchmaking.isInQueue(userId);
+
+    if (isInChat || isInQueue) {
+        matchmaking.handleLeave(userId);
+        clearUserState(userId);
+        clearSkippedPartner(userId); // Clear any skipped partner data when stopping
+
+        if (isInChat) {
+            await sendMessageWithKeyboard(chatId, messages.youLeft, mainMenuKeyboard);
+        } else {
+            await sendMessageWithKeyboard(chatId, '🛑 Search cancelled.', mainMenuKeyboard);
+        }
+    } else {
+        // Not in chat or queue
+        await sendMessageWithKeyboard(chatId, messages.notInChat, mainMenuKeyboard);
+    }
 }
 
 /**
