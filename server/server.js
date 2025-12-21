@@ -89,6 +89,8 @@ app.post('/webhook', async (req, res) => {
         // Handle callback_query (inline button clicks) FIRST
         // This is separate from message handling
         if (update.callback_query) {
+            console.log('[Webhook] Received callback_query:', update.callback_query.data);
+            console.log('[Webhook] From user:', update.callback_query.from?.id);
             await handleCallbackQuery(update.callback_query);
             return;
         }
