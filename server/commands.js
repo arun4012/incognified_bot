@@ -239,8 +239,9 @@ export async function handleHelp(chatId, userId) {
  */
 export async function handleCallbackQuery(callbackQuery) {
     const { id: queryId, from, message, data } = callbackQuery;
-    const userId = from.id;
-    const chatId = message.chat.id;
+    // Convert to string for consistency with extractUserInfo
+    const userId = from.id.toString();
+    const chatId = message.chat.id.toString();
     const messageId = message.message_id;
 
     // Answer the callback query immediately (prevents loading indicator)
