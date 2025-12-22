@@ -441,6 +441,12 @@ Looking for: ${pref}
 
 Please wait...`,
 
+    searchingLanguage: (lang) => `🔍 <b>Searching for a partner...</b>
+
+Language: ${lang}
+
+Please wait...`,
+
     partnerFound: `🎉 <b>Partner found!</b>
 
 You are now connected with a random stranger. Say hi!
@@ -485,12 +491,17 @@ You're sending messages too fast. Please wait a moment.`,
 
 💡 <i>Tip: Set your gender in /settings for better matching!</i>`,
 
-    settings: (typingEnabled, gender, age) => {
+    selectLanguage: `🌐 <b>What language do you want to chat in?</b>`,
+
+    settings: (typingEnabled, gender, age, language) => {
         const genderLabels = { male: '👨 Male', female: '👩 Female', any: '🎲 Anyone' };
+        const languageLabels = { english: '🇬🇧 English', hindi: '🇮🇳 Hindi', tamil: '🇮🇳 Tamil', telugu: '🇮🇳 Telugu', any: '🎲 Any Language' };
         const ageText = age ? `🎂 Age: ${age}` : '🎂 Age: Not set';
+        const langText = languageLabels[language] || '🎲 Any Language';
         return `⚙️ <b>Settings</b>
 
 👤 Your Gender: ${genderLabels[gender] || '🎲 Anyone'}
+🌐 Your Language: ${langText}
 ${ageText}
 🔤 Typing Indicator: ${typingEnabled ? '✅ ON' : '❌ OFF'}
 

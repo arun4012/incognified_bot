@@ -63,13 +63,31 @@ function canMatch(user1, user2) {
 }
 
 /**
+ * Check if two users can match based on language preferences
+ */
+function canMatchLanguage(user1, user2) {
+    // If either has no language preference or 'any', they can match
+    if (!user1.language || user1.language === 'any') return true;
+    if (!user2.language || user2.language === 'any') return true;
+    // Both have specific languages - must match
+    return user1.language === user2.language;
+}
+
+/**
+ * Check if two users can match (combines gender and language)
+ */
+function canMatchAll(user1, user2) {
+    return canMatch(user1, user2) && canMatchLanguage(user1, user2);
+}
+
+/**
  * Handle user joining the matchmaking queue
  * @param {string} userId - Telegram user ID
  * @param {string} chatId - Telegram chat ID
- * @param {object} options - { gender, preference } optional gender matching options
+ * @param {object} options - { gender, preference, language } optional matching options
  */
 export function handleJoin(userId, chatId, options = {}) {
-    const { gender, preference } = options;
+    const { gender, preference, language } = options;
 
     // Store chatId for this user
     userChatIds.set(userId, chatId);
@@ -96,16 +114,16 @@ export function handleJoin(userId, chatId, options = {}) {
     }
 
     // Update user state
-    setUserState(userId, USER_STATES.SEARCHING, { gender, preference });
+    setUserState(userId, USER_STATES.SEARCHING, { gender, preference, language });
 
     // User data object
-    const userData = { userId, chatId, gender, preference };
+    const userData = { userId, chatId, gender, preference, language };
 
     // Try to match with someone in queue
     if (waitingQueue.length > 0) {
-        // Find first compatible user
+        // Find first compatible user (check both gender and language)
         const matchIndex = waitingQueue.findIndex(u =>
-            u.userId !== userId && canMatch(userData, u)
+            u.userId !== userId && canMatchAll(userData, u)
         );
 
         if (matchIndex !== -1) {

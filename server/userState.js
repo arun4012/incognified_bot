@@ -16,6 +16,7 @@ export const USER_STATES = {
     IDLE: 'idle',
     SELECTING_GENDER: 'selecting_gender',
     SELECTING_PREFERENCE: 'selecting_preference',
+    SELECTING_LANGUAGE: 'selecting_language',
     SEARCHING: 'searching',
     IN_CHAT: 'in_chat',
     CONFIRMING_REPORT: 'confirming_report',
@@ -89,7 +90,7 @@ export function getUserGender(userId) {
  * Settings are loaded from Redis on first interaction via loadUserFromRedis
  */
 export function getUserSettings(userId) {
-    return userSettings.get(userId) || { typingIndicator: true, gender: 'any' };
+    return userSettings.get(userId) || { typingIndicator: true, gender: 'any', language: 'any' };
 }
 
 /**
@@ -157,6 +158,21 @@ export function getUserGenderSetting(userId) {
  */
 export function setUserAge(userId, age) {
     updateUserSettings(userId, { age });
+}
+
+/**
+ * Set user's language preference in settings (persistent)
+ */
+export function setUserLanguageSetting(userId, language) {
+    updateUserSettings(userId, { language });
+}
+
+/**
+ * Get user's language from settings (defaults to 'any')
+ */
+export function getUserLanguageSetting(userId) {
+    const settings = getUserSettings(userId);
+    return settings.language || 'any';
 }
 
 // ============ Stats Management ============
@@ -466,6 +482,8 @@ export default {
     hasUserRequestedReveal,
     clearRevealRequest,
     setUserAge,
+    setUserLanguageSetting,
+    getUserLanguageSetting,
     loadUserSettingsFromRedis,
     loadUserStatsFromRedis,
     cleanup

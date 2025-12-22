@@ -8,7 +8,14 @@ export const BUTTONS = {
     // Main menu
     FIND_PARTNER: '🚀 Find Partner',
     SEARCH_GENDER: '👩👨 Search by Gender',
+    SEARCH_LANGUAGE: '🌐 Search by Language',
 
+    // Language selection
+    LANG_ENGLISH: '🇬🇧 English',
+    LANG_HINDI: '🇮🇳 Hindi',
+    LANG_TAMIL: '🇮🇳 Tamil',
+    LANG_TELUGU: '🇮🇳 Telugu',
+    LANG_ANY: '🎲 Any Language',
     // Gender selection
     GENDER_MALE: '👨 Male',
     GENDER_FEMALE: '👩 Female',
@@ -39,7 +46,8 @@ export const BUTTONS = {
 export const mainMenuKeyboard = {
     keyboard: [
         [{ text: BUTTONS.FIND_PARTNER }],
-        [{ text: BUTTONS.SEARCH_GENDER }]
+        [{ text: BUTTONS.SEARCH_GENDER }],
+        [{ text: BUTTONS.SEARCH_LANGUAGE }]
     ],
     resize_keyboard: true,
     one_time_keyboard: false
@@ -65,6 +73,20 @@ export const genderPreferenceKeyboard = {
     keyboard: [
         [{ text: BUTTONS.GENDER_MALE }, { text: BUTTONS.GENDER_FEMALE }],
         [{ text: BUTTONS.GENDER_ANY }],
+        [{ text: BUTTONS.BACK }]
+    ],
+    resize_keyboard: true,
+    one_time_keyboard: true
+};
+
+/**
+ * Language selection keyboard (what language to chat in)
+ */
+export const languageSelectKeyboard = {
+    keyboard: [
+        [{ text: BUTTONS.LANG_ENGLISH }, { text: BUTTONS.LANG_HINDI }],
+        [{ text: BUTTONS.LANG_TAMIL }, { text: BUTTONS.LANG_TELUGU }],
+        [{ text: BUTTONS.LANG_ANY }],
         [{ text: BUTTONS.BACK }]
     ],
     resize_keyboard: true,
@@ -127,11 +149,21 @@ export function getSettingsInlineKeyboard(settings = {}) {
     const typingEnabled = settings.typingIndicator !== false;
     const currentGender = settings.gender || 'any';
     const currentAge = settings.age;
+    const currentLanguage = settings.language || 'any';
 
     // Gender button labels with checkmark for selected
     const maleLabel = currentGender === 'male' ? '✅ Male' : '👨 Male';
     const femaleLabel = currentGender === 'female' ? '✅ Female' : '👩 Female';
-    const anyLabel = currentGender === 'any' ? '✅ Anyone' : '🎲 Anyone';
+    const anyGenderLabel = currentGender === 'any' ? '✅ Anyone' : '🎲 Anyone';
+
+    // Language button labels with checkmark for selected
+    const langLabels = {
+        english: currentLanguage === 'english' ? '✅ English' : '🇬🇧 English',
+        hindi: currentLanguage === 'hindi' ? '✅ Hindi' : '🇮🇳 Hindi',
+        tamil: currentLanguage === 'tamil' ? '✅ Tamil' : '🇮🇳 Tamil',
+        telugu: currentLanguage === 'telugu' ? '✅ Telugu' : '🇮🇳 Telugu',
+        any: currentLanguage === 'any' ? '✅ Any' : '🎲 Any'
+    };
 
     // Age label
     const ageLabel = currentAge ? `🎂 Age: ${currentAge}` : '🎂 Set Age';
@@ -142,7 +174,17 @@ export function getSettingsInlineKeyboard(settings = {}) {
             [
                 { text: maleLabel, callback_data: 'set_gender_male' },
                 { text: femaleLabel, callback_data: 'set_gender_female' },
-                { text: anyLabel, callback_data: 'set_gender_any' }
+                { text: anyGenderLabel, callback_data: 'set_gender_any' }
+            ],
+            // Language selection row
+            [
+                { text: langLabels.english, callback_data: 'set_lang_english' },
+                { text: langLabels.hindi, callback_data: 'set_lang_hindi' }
+            ],
+            [
+                { text: langLabels.tamil, callback_data: 'set_lang_tamil' },
+                { text: langLabels.telugu, callback_data: 'set_lang_telugu' },
+                { text: langLabels.any, callback_data: 'set_lang_any' }
             ],
             // Age setting row
             [{ text: ageLabel, callback_data: 'set_age' }],
@@ -186,6 +228,7 @@ export default {
     mainMenuKeyboard,
     genderSelectKeyboard,
     genderPreferenceKeyboard,
+    languageSelectKeyboard,
     inChatKeyboard,
     searchingKeyboard,
     reportConfirmKeyboard,

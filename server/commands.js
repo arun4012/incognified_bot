@@ -11,6 +11,7 @@ import {
     mainMenuKeyboard,
     genderSelectKeyboard,
     genderPreferenceKeyboard,
+    languageSelectKeyboard,
     inChatKeyboard,
     searchingKeyboard,
     reportConfirmKeyboard,
@@ -39,7 +40,9 @@ import {
     getRevealRequest,
     hasUserRequestedReveal,
     clearRevealRequest,
-    setUserAge
+    setUserAge,
+    setUserLanguageSetting,
+    getUserLanguageSetting
 } from './userState.js';
 
 // Set up matchmaking response handler
@@ -146,6 +149,56 @@ export async function handlePreferenceChoice(chatId, userId, prefText) {
     );
 
     matchmaking.handleJoin(userId, chatId, { gender, preference });
+}
+
+/**
+ * Handle "Search by Language" button - show language selection
+ */
+export async function handleLanguageSelect(chatId, userId) {
+    // Check if banned
+    if (isUserBanned(userId)) {
+        const remaining = getBanRemainingTime(userId);
+        await sendMessageWithKeyboard(chatId, messages.banned(remaining), mainMenuKeyboard);
+        return;
+    }
+
+    setUserState(userId, USER_STATES.SELECTING_LANGUAGE);
+    await sendMessageWithKeyboard(chatId, messages.selectLanguage, languageSelectKeyboard);
+}
+
+/**
+ * Handle language selection (what language to chat in)
+ */
+export async function handleLanguageChoice(chatId, userId, langText) {
+    let language = null;
+    if (langText === BUTTONS.LANG_ENGLISH) language = 'english';
+    else if (langText === BUTTONS.LANG_HINDI) language = 'hindi';
+    else if (langText === BUTTONS.LANG_TAMIL) language = 'tamil';
+    else if (langText === BUTTONS.LANG_TELUGU) language = 'telugu';
+    else if (langText === BUTTONS.LANG_ANY) language = 'any';
+
+    if (!language) {
+        await sendMessageWithKeyboard(chatId, 'Please select a valid option.', languageSelectKeyboard);
+        return;
+    }
+
+    // Language labels for display
+    const langLabels = {
+        english: '🇬🇧 English',
+        hindi: '🇮🇳 Hindi',
+        tamil: '🇮🇳 Tamil',
+        telugu: '🇮🇳 Telugu',
+        any: '🎲 Any Language'
+    };
+
+    // Start searching with language filter
+    await sendMessageWithKeyboard(
+        chatId,
+        messages.searchingLanguage(langLabels[language]),
+        searchingKeyboard
+    );
+
+    matchmaking.handleJoin(userId, chatId, { language });
 }
 
 /**
@@ -287,7 +340,7 @@ export async function handleReveal(chatId, userId, username) {
 export async function handleSettings(chatId, userId) {
     const settings = getUserSettings(userId);
     const inlineKeyboard = getSettingsInlineKeyboard(settings);
-    await sendMessageWithKeyboard(chatId, messages.settings(settings.typingIndicator, settings.gender, settings.age), inlineKeyboard);
+    await sendMessageWithKeyboard(chatId, messages.settings(settings.typingIndicator, settings.gender, settings.age, settings.language), inlineKeyboard);
 }
 
 /**
@@ -334,7 +387,7 @@ export async function handleCallbackQuery(callbackQuery) {
             await answerCallbackQuery(queryId, `✅ Typing Indicator ${newValue ? 'ON' : 'OFF'}`);
 
             // Refresh full settings message
-            await editMessageText(chatId, messageId, messages.settings(settings.typingIndicator, settings.gender), newKeyboard);
+            await editMessageText(chatId, messageId, messages.settings(settings.typingIndicator, settings.gender, settings.age, settings.language), newKeyboard);
             break;
         }
 
@@ -351,7 +404,32 @@ export async function handleCallbackQuery(callbackQuery) {
             await answerCallbackQuery(queryId, `✅ Gender set to ${genderLabels[gender]}`);
 
             // Refresh full settings message
-            await editMessageText(chatId, messageId, messages.settings(settings.typingIndicator, settings.gender, settings.age), newKeyboard);
+            await editMessageText(chatId, messageId, messages.settings(settings.typingIndicator, settings.gender, settings.age, settings.language), newKeyboard);
+            break;
+        }
+
+        case 'set_lang_english':
+        case 'set_lang_hindi':
+        case 'set_lang_tamil':
+        case 'set_lang_telugu':
+        case 'set_lang_any': {
+            // Extract language from callback data
+            const language = data.replace('set_lang_', '');
+            setUserLanguageSetting(userId, language);
+            const settings = getUserSettings(userId);
+            const newKeyboard = getSettingsInlineKeyboard(settings);
+
+            // Language labels for toast
+            const langLabels = {
+                english: '🇬🇧 English',
+                hindi: '🇮🇳 Hindi',
+                tamil: '🇮🇳 Tamil',
+                telugu: '🇮🇳 Telugu',
+                any: '🎲 Any Language'
+            };
+
+            await answerCallbackQuery(queryId, `✅ Language set to ${langLabels[language]}`);
+            await editMessageText(chatId, messageId, messages.settings(settings.typingIndicator, settings.gender, settings.age, settings.language), newKeyboard);
             break;
         }
 
@@ -460,6 +538,9 @@ export async function handleTextMessage(message, userId, chatId) {
     if (text === BUTTONS.UNDO_SKIP) {
         return handleUndoSkip(chatId, userId);
     }
+    if (text === BUTTONS.SEARCH_LANGUAGE) {
+        return handleLanguageSelect(chatId, userId);
+    }
 
     // Handle gender selection state
     if (userState.state === USER_STATES.SELECTING_GENDER) {
@@ -477,6 +558,17 @@ export async function handleTextMessage(message, userId, chatId) {
             return handlePreferenceChoice(chatId, userId, text);
         }
         await sendMessageWithKeyboard(chatId, messages.selectPreference, genderPreferenceKeyboard);
+        return;
+    }
+
+    // Handle language selection state
+    if (userState.state === USER_STATES.SELECTING_LANGUAGE) {
+        if (text === BUTTONS.LANG_ENGLISH || text === BUTTONS.LANG_HINDI ||
+            text === BUTTONS.LANG_TAMIL || text === BUTTONS.LANG_TELUGU ||
+            text === BUTTONS.LANG_ANY) {
+            return handleLanguageChoice(chatId, userId, text);
+        }
+        await sendMessageWithKeyboard(chatId, messages.selectLanguage, languageSelectKeyboard);
         return;
     }
 
