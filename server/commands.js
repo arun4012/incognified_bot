@@ -16,6 +16,7 @@ import {
     searchingKeyboard,
     reportConfirmKeyboard,
     skippedKeyboard,
+    stoppedKeyboard,
     getSettingsInlineKeyboard
 } from './menus.js';
 import {
@@ -268,18 +269,69 @@ export async function handleStop(chatId, userId) {
     const isInQueue = matchmaking.isInQueue(userId);
 
     if (isInChat || isInQueue) {
+        // Get partner info before leaving (for undo feature)
+        const partner = matchmaking.getPartner(userId);
+
+        // If we have a partner, save their info for undo
+        if (partner) {
+            setSkippedPartner(userId, partner.partnerId, partner.partnerChatId);
+        }
+
         matchmaking.handleLeave(userId);
         clearUserState(userId);
-        clearSkippedPartner(userId); // Clear any skipped partner data when stopping
 
         if (isInChat) {
-            await sendMessageWithKeyboard(chatId, messages.youLeft, mainMenuKeyboard);
+            await sendMessageWithKeyboard(
+                chatId,
+                messages.youLeft + '\n\n🔄 Click "Undo Stop" within 10 seconds to reconnect.',
+                stoppedKeyboard
+            );
         } else {
             await sendMessageWithKeyboard(chatId, '🛑 Search cancelled.', mainMenuKeyboard);
         }
     } else {
         // Not in chat or queue
         await sendMessageWithKeyboard(chatId, messages.notInChat, mainMenuKeyboard);
+    }
+}
+
+/**
+ * Handle Undo Stop button - reconnect with previous partner
+ */
+export async function handleUndoStop(chatId, userId) {
+    // Get stopped partner (will be null if expired or not found)
+    const stoppedPartner = getSkippedPartner(userId);
+
+    if (!stoppedPartner) {
+        // Undo expired or no partner to reconnect with
+        await sendMessageWithKeyboard(
+            chatId,
+            '⏰ Undo time expired! You can only undo within 10 seconds of stopping.',
+            mainMenuKeyboard
+        );
+        return;
+    }
+
+    const { partnerId, partnerChatId } = stoppedPartner;
+
+    // Try to reconnect
+    const result = matchmaking.reconnectPair(userId, partnerId, chatId, partnerChatId);
+
+    if (result.success) {
+        // Clear stopped partner data
+        clearSkippedPartner(userId);
+
+        // Notify both users
+        await sendMessageWithKeyboard(chatId, '🔄 Reconnected with your previous partner!', inChatKeyboard);
+        await sendMessageWithKeyboard(partnerChatId, '🔄 Your previous partner reconnected!', inChatKeyboard);
+    } else {
+        // Partner is busy or unavailable
+        clearSkippedPartner(userId);
+        await sendMessageWithKeyboard(
+            chatId,
+            '❌ Sorry, your previous partner is now in another chat.',
+            mainMenuKeyboard
+        );
     }
 }
 
@@ -540,6 +592,9 @@ export async function handleTextMessage(message, userId, chatId) {
     }
     if (text === BUTTONS.SEARCH_LANGUAGE) {
         return handleLanguageSelect(chatId, userId);
+    }
+    if (text === BUTTONS.UNDO_STOP) {
+        return handleUndoStop(chatId, userId);
     }
 
     // Handle gender selection state

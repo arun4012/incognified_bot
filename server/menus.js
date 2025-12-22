@@ -36,7 +36,8 @@ export const BUTTONS = {
     CANCEL_REPORT: '❌ Cancel',
 
     // Undo skip
-    UNDO_SKIP: '🔄 Undo Skip'
+    UNDO_SKIP: '🔄 Undo Skip',
+    UNDO_STOP: '🔄 Undo Stop'
 };
 
 /**
@@ -141,6 +142,19 @@ export const skippedKeyboard = {
 };
 
 /**
+ * Stopped keyboard - shown after stopping a chat (with undo option)
+ */
+export const stoppedKeyboard = {
+    keyboard: [
+        [{ text: BUTTONS.UNDO_STOP }],
+        [{ text: BUTTONS.FIND_PARTNER }],
+        [{ text: BUTTONS.BACK }]
+    ],
+    resize_keyboard: true,
+    one_time_keyboard: false
+};
+
+/**
  * Generate INLINE settings keyboard (appears in message)
  * @param {object} settings - User's current settings
  * @returns {object} Inline keyboard object
@@ -233,6 +247,7 @@ export default {
     searchingKeyboard,
     reportConfirmKeyboard,
     skippedKeyboard,
+    stoppedKeyboard,
     getSettingsInlineKeyboard,
     removeKeyboard,
     isButton,
