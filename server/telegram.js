@@ -524,7 +524,7 @@ Please type your age (13-99):`,
 📨 Messages Sent: ${stats.messages}
 ⏱️ Total Chat Time: ${stats.totalDuration}
 
-<i>Stats are stored locally and reset when bot restarts.</i>`,
+<i>Your stats are saved and persist across sessions.</i>`,
 
     help: `❓ <b>How to use Incognified Bot</b>
 

@@ -20,6 +20,7 @@ import {
     handleCallbackQuery,
     handleReveal
 } from './commands.js';
+import { loadUserSettingsFromRedis, loadUserStatsFromRedis } from './userState.js';
 import matchmaking from './matchmaking.js';
 import { setWebhook, getMe } from './telegram.js';
 
@@ -110,11 +111,9 @@ app.post('/webhook', async (req, res) => {
             return;
         }
 
-        // Load user data from Redis on first interaction (fire and forget)
-        import('./userState.js').then(({ loadUserSettingsFromRedis, loadUserStatsFromRedis }) => {
-            loadUserSettingsFromRedis(userId);
-            loadUserStatsFromRedis(userId);
-        });
+        // Load user data from Redis on first interaction (await to ensure data is ready)
+        await loadUserSettingsFromRedis(userId);
+        await loadUserStatsFromRedis(userId);
 
         // Check if it's a command
         if (message.text && isCommand(message.text)) {
