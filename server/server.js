@@ -97,27 +97,6 @@ app.post('/webhook', async (req, res) => {
             return;
         }
 
-        // Handle message_reaction (emoji reactions)
-        if (update.message_reaction) {
-            const reaction = update.message_reaction;
-            const userId = reaction.user?.id?.toString();
-
-            if (userId) {
-                // Get partner info
-                const partner = matchmaking.getPartner(userId);
-                if (partner) {
-                    // Get the emoji(s) from the reaction
-                    const newReactions = reaction.new_reaction || [];
-                    if (newReactions.length > 0) {
-                        const emoji = newReactions.map(r => r.emoji).join('');
-                        const { sendMessage } = await import('./telegram.js');
-                        await sendMessage(partner.partnerChatId, `${emoji} Partner reacted to your message!`);
-                    }
-                }
-            }
-            return;
-        }
-
         // Extract user info from message
         const userInfo = extractUserInfo(update);
         if (!userInfo) {
