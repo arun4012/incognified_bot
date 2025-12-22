@@ -260,7 +260,7 @@ export async function setWebhook(webhookUrl) {
             },
             body: JSON.stringify({
                 url: webhookUrl,
-                allowed_updates: ['message', 'callback_query'], // Receive messages and inline button clicks
+                allowed_updates: ['message', 'callback_query', 'message_reaction'], // Receive messages, inline button clicks, and reactions
                 drop_pending_updates: true // Ignore old messages on restart
             })
         });
